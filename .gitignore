@@ -1,0 +1,8 @@
+dist/
+shots/
+*.log
+*.log.1
+*.user
+*.suo
+.vs/
+__pycache__/
