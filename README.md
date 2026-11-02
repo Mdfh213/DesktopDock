@@ -1,11 +1,31 @@
 # DesktopDock · 桌面侧边栏
 
-轻量、简约的桌面整理工具。单文件、零依赖、约 62 KB。
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](#)
+[![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4.svg)](#)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Size](https://img.shields.io/badge/size-62%20KB-lightgrey.svg)](#)
+[![Dependencies](https://img.shields.io/badge/dependencies-none-success.svg)](#)
+[![Build](https://img.shields.io/badge/build-csc.exe%20only-orange.svg)](#重新编译)
 
-> **面向使用者的完整说明请见 [使用说明.md](使用说明.md)**（安装、图标操作、滚动、托盘菜单、常见问题）
-> 本文档偏开发者视角：架构、配置字段、已知限制。
+轻量、简约的桌面侧边栏启动器。把图标收进屏幕左右两侧的抽屉里，鼠标贴边滑出，点一下就启动。
+
+**单文件 · 零依赖 · 约 62 KB · 免安装 · 只用系统自带的 `csc.exe` 就能编译**
+
+![DesktopDock 侧边栏面板](docs/panel.jpg)
+
+> **面向使用者的完整说明：[使用说明.md](使用说明.md)**（安装、图标操作、滚动、托盘菜单、常见问题）
+> 本文档偏开发者视角：功能、架构、配置字段、已知限制。
 
 ---
+
+## 截图
+
+把几个图标长按拖到一起，就会合并成这样的**分组格子**（2×2 迷你预览）：
+
+![分组格子](docs/group.jpg)
+
+---
+
 
 ## 功能
 
