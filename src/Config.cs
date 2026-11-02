@@ -25,6 +25,8 @@ namespace DesktopDock
         public int Gap { get; set; }
         public double PanelOpacity { get; set; }
         public List<DockItem> Items { get; set; }
+        /// <summary>分组格子的显示顺序（可拖动调整）。</summary>
+        public List<string> GroupOrder { get; set; }
 
         public DockConfig()
         {
@@ -35,6 +37,7 @@ namespace DesktopDock
             Gap = 12;
             PanelOpacity = 0.97;
             Items = new List<DockItem>();
+            GroupOrder = new List<string>();
         }
 
         public void Normalize()
@@ -53,11 +56,35 @@ namespace DesktopDock
                 if (it.Path == null) it.Path = "";
                 if (it.Group == null) it.Group = "";
             }
+            if (GroupOrder == null) GroupOrder = new List<string>();
+            // 去掉已不存在或重复的分组名
+            for (int i = GroupOrder.Count - 1; i >= 0; i--)
+            {
+                string g = GroupOrder[i];
+                if (string.IsNullOrEmpty(g) || GroupOrder.IndexOf(g) != i || !HasGroup(g))
+                    GroupOrder.RemoveAt(i);
+            }
         }
 
+        public bool HasGroup(string g)
+        {
+            for (int i = 0; i < Items.Count; i++)
+                if (Items[i].Group == g) return true;
+            return false;
+        }
+
+        /// <summary>分组显示顺序：先按 GroupOrder，再把未登记的追加到末尾。</summary>
         public List<string> Groups()
         {
             List<string> list = new List<string>();
+            if (GroupOrder != null)
+            {
+                for (int i = 0; i < GroupOrder.Count; i++)
+                {
+                    string g = GroupOrder[i];
+                    if (!string.IsNullOrEmpty(g) && HasGroup(g) && !list.Contains(g)) list.Add(g);
+                }
+            }
             for (int i = 0; i < Items.Count; i++)
             {
                 string g = Items[i].Group;

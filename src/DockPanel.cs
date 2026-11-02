@@ -265,7 +265,9 @@ namespace DesktopDock
         private bool _pollDown;
         private int _pollDownAt;
         private Point _pollDownPt;
-        private int _lastClickHandled;
+        private int _lastClickIndex = -1;
+        private int _lastClickTick;
+        private int _lastMsgTick;
 
         // 操作反馈
         private string _toast = "";
@@ -359,7 +361,8 @@ namespace DesktopDock
             int held = Environment.TickCount - _pollDownAt;
             if (held > 700) return;                       // 长按交给拖拽逻辑
             if (!_panel.IsShowingPanel || _dragging) return;
-            if (Environment.TickCount - _lastClickHandled < 500) return;
+            // 窗口消息正常时不要重复处理（否则一次物理点击会被算成两下）
+            if (_lastMsgTick != 0 && Environment.TickCount - _lastMsgTick < 900) return;
 
             Point local = PointToClient(_pollDownPt);
             if (local.X < 0 || local.X > Width || local.Y < 0 || local.Y > Height) return;
@@ -368,8 +371,7 @@ namespace DesktopDock
             if (hit < 0) return;
 
             Log.Write("poll click hit=" + hit + " local=" + local);
-            _lastClickHandled = Environment.TickCount;
-            ActivateCell(hit);
+            HandleClick(hit);
         }
 
         /// <summary>滚动：连续位移（不做即时吸附，否则小步滚动会被抹成 0）。</summary>
@@ -469,16 +471,25 @@ namespace DesktopDock
             }
 
             if (_panel.IsShowingPanel && !_dragging) PollClick();
-
-            if (_maxScroll <= 0) return;
-            if (_dragging) return;
             if (!_panel.IsShowingPanel) return;
 
             Point local = PointToClient(Cursor.Position);
             if (local.X < -Ui.Px(6) || local.X > Width + Ui.Px(6)) return;
-            if (local.Y < -Ui.Px(6) || local.Y > Height + Ui.Px(6)) return;
 
-            int zone = Ui.Px(64);
+            int zone = Ui.Px(70);
+            bool nearTop = local.Y < zone;
+            bool nearBottom = local.Y > Height - zone;
+
+            // 拖动图标时贴住上下边界也会滚动，方便把图标拖到看不见的位置
+            if (_dragging)
+            {
+                if (_maxScroll <= 0) return;
+                if (nearTop) ScrollBy(-Ui.Px(26));
+                else if (nearBottom) ScrollBy(Ui.Px(26));
+                return;
+            }
+
+            if (_maxScroll <= 0) return;
             if (local.Y < zone) ScrollBy(-Ui.Px(30));
             else if (local.Y > Height - zone) ScrollBy(Ui.Px(30));
         }
@@ -991,28 +1002,66 @@ namespace DesktopDock
 
                 if (src >= 0 && src < _cells.Count && release >= 0 && release != src)
                 {
+                    Cell s = _cells[src];
                     Cell d = _cells[release];
-                    if (merge || d.IsGroup || d.IsBack) PerformMerge(src, release);
+                    if (s.IsGroup && d.IsGroup) PerformSwap(src, release);   // 分组之间换位置
+                    else if (merge || d.IsGroup || d.IsBack) PerformMerge(src, release);
                     else PerformSwap(src, release);
                 }
                 Invalidate();
             }
             else if (_press >= 0 && _press == release)
             {
-                _lastClickHandled = Environment.TickCount;
-                ActivateCell(release);
+                _lastMsgTick = Environment.TickCount;
+                HandleClick(release);
             }
             _press = -1;
             Invalidate();
         }
 
-        /// <summary>拖到另一个图标上（未长按）＝交换位置。</summary>
+        /// <summary>双击才执行打开（单击只记录，避免误触）。</summary>
+        private void HandleClick(int index)
+        {
+            if (index < 0 || index >= _cells.Count) return;
+
+            if (index == _lastClickIndex && Environment.TickCount - _lastClickTick <= 450)
+            {
+                _lastClickIndex = -1;
+                _lastClickTick = 0;
+                ActivateCell(index);
+            }
+            else
+            {
+                _lastClickIndex = index;
+                _lastClickTick = Environment.TickCount;
+            }
+        }
+
+        /// <summary>拖到另一个格子上（未长按）＝交换位置；两个分组之间也可以换位置。</summary>
         private void PerformSwap(int src, int dst)
         {
             Cell s = _cells[src];
             Cell d = _cells[dst];
+
+            // 分组 ↔ 分组：交换它们在序列里的次序
+            if (s.IsGroup && d.IsGroup)
+            {
+                System.Collections.Generic.List<string> order = Cfg.Groups();
+                int g1 = order.IndexOf(s.Group);
+                int g2 = order.IndexOf(d.Group);
+                if (g1 < 0 || g2 < 0 || g1 == g2) return;
+                string tmp = order[g1];
+                order[g1] = order[g2];
+                order[g2] = tmp;
+                Cfg.GroupOrder = order;
+                ConfigStore.Save(Cfg);
+                _mgr.RefreshPanels();
+                Log.Write("分组换位: " + s.Group + " <-> " + d.Group);
+                return;
+            }
+
             if (s.Item == null || d.Item == null) return;
-            if (s.Item.Group != d.Item.Group) return;
+            if (s.Item.Group != d.Item.Group) return;   // 普通图标只在同层（同分组）内交换
 
             int ia = Cfg.Items.IndexOf(s.Item);
             int ib = Cfg.Items.IndexOf(d.Item);
