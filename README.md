@@ -47,20 +47,28 @@
 
 ```jsonc
 {
-  "HideDesktopIcons": true,   // 是否隐藏桌面图标
   "HotEdgeWidth": 6,          // 边缘热区宽度（像素，缩放后）
   "PanelWidth": 330,          // 面板宽度
   "CellSize": 96,             // 格子大小（图标大小 = 格子的 56%）
   "Gap": 12,                  // 格子间距
   "PanelOpacity": 0.97,       // 面板不透明度
+
+  // 顶层顺序：图标与分组混排，可拖动调整
+  // "i:<Id>" = 普通图标，"g:<分组名>" = 分组格子
+  "Order": ["i:k000", "g:开发工具", "i:k001"],
+
   "Items": [
-    { "Name": "微信", "Path": "C:\\Users\\Public\\Desktop\\微信.lnk", "Group": "" },
-    { "Name": "Edge", "Path": "C:\\...\\Microsoft Edge.lnk", "Group": "开发工具" }
+    { "Id": "k000", "Name": "微信", "Path": "C:\\Users\\Public\\Desktop\\微信.lnk", "Group": "" },
+    { "Id": "k001", "Name": "Edge", "Path": "C:\\...\\Microsoft Edge.lnk", "Group": "开发工具" },
+    { "Id": "k002", "Name": "此电脑", "Path": "shell:MyComputerFolder", "Group": "" }
   ]
 }
 ```
 
-`Group` 为空表示顶层；相同 `Group` 的名字会自动合并成一个分组格子。
+- `Group` 为空表示顶层；相同 `Group` 的名字会自动合并成一个分组格子
+- `Id` 是拖拽排序用的稳定标识，**不要手改或删除**
+- `Path` 支持三种：文件/快捷方式、文件夹、`shell:` 命名空间（此电脑、控制面板等）
+- 旧字段 `HideDesktopIcons` 已废弃（隐藏桌面图标功能已移除），留着也不会生效
 
 改完配置后在托盘菜单点「重新加载配置」即可，无需重启。
 
