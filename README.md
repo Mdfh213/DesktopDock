@@ -1,6 +1,6 @@
 # DesktopDock · 桌面侧边栏
 
-[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](#)
+[![Version](https://img.shields.io/badge/version-1.4.1-blue.svg)](#)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Size](https://img.shields.io/badge/size-62%20KB-lightgrey.svg)](#)
@@ -87,12 +87,20 @@ src/
 
 ## 已知限制 / 注意
 
-- **隐藏桌面图标依赖与 explorer 同权限运行**。以管理员或受限令牌（低完整性）运行时，`ShowWindow`/`WM_COMMAND` 会被 UIPI 拒绝，图标不会隐藏；正常双击运行即可。
-- 图标隐藏是通过 Explorer 的显示状态切换实现的；如果中途手动右键桌面「查看 → 显示桌面图标」，下次程序会按 `HideDesktopIcons` 的设定再纠正。
-- 内容超出屏幕高度时可以滚动（滚轮 / 鼠标贴边自动滚动），右侧有细滚动条；想一屏放下全部图标就把 `CellSize` 调小。
-- 全屏检测采用「前台窗口矩形覆盖整个显示器」的判定，最大化窗口（露出任务栏）不算全屏。
-- 关机/强杀进程不会执行退出清理，桌面图标会保持隐藏状态，重新打开程序或在托盘取消勾选即可恢复。
+- **不要移动或重命名程序文件夹**：开机自启记录的是 exe 的绝对路径，挪动后会静默失效（从新位置启动一次、重新勾选即可）。
+- 全屏检测采用「前台窗口矩形覆盖整个显示器」的判定，最大化窗口（露出任务栏）不算全屏；截图工具的选框层会被识别并让路。
+- 顶层顺序存在 `config.json` 的 `Order` 字段里，图标用 `Id` 引用；手改配置时不要删 `Id`，否则该项会被当成新项目追加到末尾。
+- 关机/强杀进程不会执行退出清理，但程序不写注册表（除开机自启）、不在系统目录留文件，直接删文件夹即可卸载。
+
+## 发布 / 同步
+
+```bat
+push-to-gitee.bat   推送到 https://gitee.com/Dusk_Luminance/DesktopDock
+push-to-github.bat  同步到 https://github.com/Mdfh213/DesktopDock
+```
+
+两者都是 GBK 编码的批处理，双击运行；GitHub 在国内直连常被重置，脚本会提示配置代理。
 
 ## 日志
 
-出错信息写入 `dist\dock.log`，可直接发给我排查。
+出错信息写入 `dock.log`（与 exe 同目录，超过 512 KB 自动轮转为 `dock.log.1`），可直接发给我排查。

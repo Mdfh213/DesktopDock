@@ -462,6 +462,11 @@ namespace DesktopDock
             _slideTimer.Tick += SlideTick;
         }
 
+        private static bool LeftDown()
+        {
+            return (Native.GetAsyncKeyState(0x01) & 0x8000) != 0;
+        }
+
         private void AutoScrollTick(object sender, EventArgs e)
         {
             if (_toastUntil != 0 && Environment.TickCount > _toastUntil)
@@ -473,6 +478,22 @@ namespace DesktopDock
 
             if (_panel.IsShowingPanel && !_dragging) PollClick();
             if (!_panel.IsShowingPanel) return;
+
+            // 兜底：启动程序会抢走前台，面板可能收不到 MouseUp，
+            // 使 _press/_dragging 一直挂着（表现为"图标粘在光标上"）。
+            if ((_dragging || _press >= 0) && !LeftDown())
+            {
+                if (_dragging)
+                {
+                    _dragging = false;
+                    _dragIndex = -1;
+                    _mergeMode = false;
+                    _mergeTimer.Stop();
+                    Log.Write("拖拽状态已强制清理");
+                }
+                _press = -1;
+                Invalidate();
+            }
 
             Point local = PointToClient(Cursor.Position);
             if (local.X < -Ui.Px(6) || local.X > Width + Ui.Px(6)) return;
@@ -956,7 +977,7 @@ namespace DesktopDock
                 Invalidate();
             }
 
-            if (_press >= 0 && !_dragging)
+            if (_press >= 0 && !_dragging && LeftDown())
             {
                 int dx = Math.Abs(e.X - _pressPt.X);
                 int dy = Math.Abs(e.Y - _pressPt.Y);
