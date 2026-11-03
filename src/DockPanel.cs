@@ -548,18 +548,49 @@ namespace DesktopDock
             int idx = 0;
             if (_group.Length == 0)
             {
-                // 应用格子
+                // 按统一顺序表排布：图标与分组混排，可互相换位
+                System.Collections.Generic.Dictionary<string, bool> doneItem = new System.Collections.Generic.Dictionary<string, bool>();
+                System.Collections.Generic.Dictionary<string, bool> doneGroup = new System.Collections.Generic.Dictionary<string, bool>();
+
+                for (int k = 0; k < Cfg.Order.Count; k++)
+                {
+                    string tok = Cfg.Order[k];
+                    if (tok.Length < 3) continue;
+                    if (tok.StartsWith("g:"))
+                    {
+                        string gname = tok.Substring(2);
+                        if (!Cfg.HasGroup(gname) || doneGroup.ContainsKey(gname)) continue;
+                        Cell c = new Cell();
+                        c.IsGroup = true;
+                        c.Group = gname;
+                        c.Bounds = CellRect(idx, _cols, startX, startY, cell, gap);
+                        _cells.Add(c);
+                        doneGroup[gname] = true;
+                        idx++;
+                    }
+                    else if (tok.StartsWith("i:"))
+                    {
+                        DockItem it = Cfg.ById(tok.Substring(2));
+                        if (it == null || it.Group.Length > 0 || doneItem.ContainsKey(it.Id)) continue;
+                        _cells.Add(MakeAppCell(it, idx, _cols, startX, startY, cell, gap));
+                        doneItem[it.Id] = true;
+                        idx++;
+                    }
+                }
+
+                // 兜底：顺序表里漏掉的图标/分组
                 for (int i = 0; i < Cfg.Items.Count; i++)
                 {
                     DockItem it = Cfg.Items[i];
                     if (it.Group != null && it.Group.Length > 0) continue;
+                    if (doneItem.ContainsKey(it.Id)) continue;
                     _cells.Add(MakeAppCell(it, idx, _cols, startX, startY, cell, gap));
                     idx++;
                 }
-                // 分组格子
                 System.Collections.Generic.List<string> groups = Cfg.Groups();
                 for (int g = 0; g < groups.Count; g++)
                 {
+                    if (doneGroup.ContainsKey(groups[g])) continue;
                     Cell c = new Cell();
                     c.IsGroup = true;
                     c.Group = groups[g];
@@ -567,6 +598,7 @@ namespace DesktopDock
                     _cells.Add(c);
                     idx++;
                 }
+
                 // “添加图标”格子（两种视图都有）
                 Cell add = new Cell();
                 add.IsAdd = true;
@@ -1005,6 +1037,7 @@ namespace DesktopDock
                     Cell s = _cells[src];
                     Cell d = _cells[release];
                     if (s.IsGroup && d.IsGroup) PerformSwap(src, release);   // 分组之间换位置
+                    else if (s.IsGroup) PerformSwap(src, release);           // 分组拖到任何格子上＝换位
                     else if (merge || d.IsGroup || d.IsBack) PerformMerge(src, release);
                     else PerformSwap(src, release);
                 }
@@ -1037,40 +1070,48 @@ namespace DesktopDock
             }
         }
 
-        /// <summary>拖到另一个格子上（未长按）＝交换位置；两个分组之间也可以换位置。</summary>
+        /// <summary>拖到另一个格子上（未长按）＝交换位置。图标与分组可以互相换位。</summary>
         private void PerformSwap(int src, int dst)
         {
             Cell s = _cells[src];
             Cell d = _cells[dst];
+            if (s.IsAdd || d.IsAdd || s.IsBack || d.IsBack) return;
 
-            // 分组 ↔ 分组：交换它们在序列里的次序
-            if (s.IsGroup && d.IsGroup)
+            int ia = _group.Length == 0 ? Cfg.IndexOfToken(TokenOf(s)) : -1;
+            int ib = _group.Length == 0 ? Cfg.IndexOfToken(TokenOf(d)) : -1;
+
+            if (ia >= 0 && ib >= 0 && ia != ib)
             {
-                System.Collections.Generic.List<string> order = Cfg.Groups();
-                int g1 = order.IndexOf(s.Group);
-                int g2 = order.IndexOf(d.Group);
-                if (g1 < 0 || g2 < 0 || g1 == g2) return;
-                string tmp = order[g1];
-                order[g1] = order[g2];
-                order[g2] = tmp;
-                Cfg.GroupOrder = order;
+                // 顶层：直接在统一顺序表里对调，支持 图标↔图标 / 图标↔分组 / 分组↔分组
+                string tmp = Cfg.Order[ia];
+                Cfg.Order[ia] = Cfg.Order[ib];
+                Cfg.Order[ib] = tmp;
                 ConfigStore.Save(Cfg);
                 _mgr.RefreshPanels();
-                Log.Write("分组换位: " + s.Group + " <-> " + d.Group);
+                Log.Write("换位: " + tmp + " <-> " + Cfg.Order[ia]);
                 return;
             }
 
+            // 分组内部：交换 Items 里的先后
             if (s.Item == null || d.Item == null) return;
-            if (s.Item.Group != d.Item.Group) return;   // 普通图标只在同层（同分组）内交换
+            if (s.Item.Group != d.Item.Group) return;
 
-            int ia = Cfg.Items.IndexOf(s.Item);
-            int ib = Cfg.Items.IndexOf(d.Item);
-            if (ia < 0 || ib < 0 || ia == ib) return;
+            int ix = Cfg.Items.IndexOf(s.Item);
+            int iy = Cfg.Items.IndexOf(d.Item);
+            if (ix < 0 || iy < 0 || ix == iy) return;
 
-            Cfg.Items[ia] = d.Item;
-            Cfg.Items[ib] = s.Item;
+            Cfg.Items[ix] = d.Item;
+            Cfg.Items[iy] = s.Item;
             ConfigStore.Save(Cfg);
             _mgr.RefreshPanels();
+        }
+
+        /// <summary>格子对应的顺序表 token（图标 "i:Id" / 分组 "g:名字"）。</summary>
+        private static string TokenOf(Cell c)
+        {
+            if (c.IsGroup) return DockConfig.GroupToken(c.Group);
+            if (c.Item != null) return DockConfig.ItemToken(c.Item);
+            return null;
         }
 
         private void ActivateCell(int index)
@@ -1131,6 +1172,7 @@ namespace DesktopDock
                         it.Group = _group;
                         Cfg.Items.Add(it);
                     }
+                    Cfg.Normalize();
                     ConfigStore.Save(Cfg);
                     _panel.RefreshConfig();
                     _mgr.RefreshPanels();
@@ -1166,6 +1208,7 @@ namespace DesktopDock
                     it.Group = _group;
                     Cfg.Items.Add(it);
 
+                    Cfg.Normalize();
                     ConfigStore.Save(Cfg);
                     _panel.RefreshConfig();
                     _mgr.RefreshPanels();
@@ -1186,27 +1229,46 @@ namespace DesktopDock
             Cell d = _cells[dst];
             if (s.Item == null) return;
 
+            string sTok = DockConfig.ItemToken(s.Item);
+            int sPos = Cfg.IndexOfToken(sTok);
+
             if (d.IsBack)
             {
-                // 从分组里拖到“返回” => 移出分组
+                // 从分组里拖到“返回” => 移出分组，回到顶层末尾
                 s.Item.Group = "";
+                if (Cfg.IndexOfToken(sTok) < 0) Cfg.InsertToken(Cfg.Order.Count, sTok);
             }
             else if (d.IsGroup)
             {
+                // 拖到分组格子上 => 加入该分组，从顶层顺序里移除
                 s.Item.Group = d.Group;
+                Cfg.RemoveToken(sTok);
             }
             else if (d.Item != null)
             {
                 string name = d.Item.Group;
+                string dTok = DockConfig.ItemToken(d.Item);
+                int dPos = Cfg.IndexOfToken(dTok);
+
                 if (string.IsNullOrEmpty(name))
                 {
+                    // 两个图标合并成新分组：分组格子出现在两者原来的位置
                     name = NextGroupName();
                     d.Item.Group = name;
                     s.Item.Group = name;
+
+                    int insertAt;
+                    if (sPos >= 0 && dPos >= 0) insertAt = Math.Min(sPos, dPos);
+                    else insertAt = Math.Max(sPos, dPos);
+
+                    Cfg.RemoveToken(sTok);
+                    Cfg.RemoveToken(dTok);
+                    Cfg.InsertToken(insertAt < 0 ? Cfg.Order.Count : insertAt, DockConfig.GroupToken(name));
                 }
                 else
                 {
                     s.Item.Group = name;
+                    Cfg.RemoveToken(sTok);
                 }
             }
             ConfigStore.Save(Cfg);
@@ -1367,6 +1429,8 @@ namespace DesktopDock
                     menu.Items.Add("移出分组", null, delegate
                     {
                         item.Group = "";
+                        string tk = DockConfig.ItemToken(item);
+                        if (Cfg.IndexOfToken(tk) < 0) Cfg.InsertToken(Cfg.Order.Count, tk);
                         ConfigStore.Save(Cfg);
                         _mgr.RefreshPanels();
                     });
@@ -1374,6 +1438,7 @@ namespace DesktopDock
                 menu.Items.Add("删除", null, delegate
                 {
                     Cfg.Items.Remove(item);
+                    Cfg.Normalize();          // 顺带清掉顺序表里的失效项
                     ConfigStore.Save(Cfg);
                     _mgr.RefreshPanels();
                 });
@@ -1389,6 +1454,8 @@ namespace DesktopDock
                     {
                         for (int i = 0; i < Cfg.Items.Count; i++)
                             if (Cfg.Items[i].Group == g) Cfg.Items[i].Group = v;
+                        int gi = Cfg.IndexOfToken(DockConfig.GroupToken(g));
+                        if (gi >= 0) Cfg.Order[gi] = DockConfig.GroupToken(v);
                         ConfigStore.Save(Cfg);
                         _mgr.RefreshPanels();
                     }
@@ -1397,6 +1464,7 @@ namespace DesktopDock
                 {
                     for (int i = 0; i < Cfg.Items.Count; i++)
                         if (Cfg.Items[i].Group == g) Cfg.Items[i].Group = "";
+                    Cfg.Normalize();          // 成员自动补回顶层顺序
                     ConfigStore.Save(Cfg);
                     _mgr.RefreshPanels();
                 });

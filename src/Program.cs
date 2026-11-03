@@ -10,7 +10,7 @@ namespace DesktopDock
     {
         private static Mutex _mutex;
         public static bool Demo;
-        public const string Version = "1.2.0";
+        public const string Version = "1.3.0";
 
         [STAThread]
         private static void Main(string[] args)
@@ -94,6 +94,9 @@ namespace DesktopDock
         public DockContext()
         {
             _mgr = new DockManager();
+            // 首次载入后立刻回写一次：让新生成的 Id / Order 落盘，
+            // 否则每次启动都会重新生成 Id，已保存的顺序会对不上。
+            try { ConfigStore.Save(ConfigStore.Load()); } catch { }
             try { _mgr.Start(); }
             catch (Exception ex)
             {
@@ -166,6 +169,20 @@ namespace DesktopDock
                 DockConfig cfg = ConfigStore.Load();
                 wl("config path = " + ConfigStore.FilePath);
                 wl("items = " + cfg.Items.Count + ", groups = " + cfg.Groups().Count);
+                wl("order = " + cfg.Order.Count + " 项（顶层图标+分组混排）");
+                System.Text.StringBuilder ob = new System.Text.StringBuilder("  ");
+                for (int i = 0; i < cfg.Order.Count && i < 12; i++)
+                {
+                    string tok = cfg.Order[i];
+                    if (tok.StartsWith("g:")) ob.Append("[组]" + tok.Substring(2));
+                    else
+                    {
+                        DockItem oi = cfg.ById(tok.Substring(2));
+                        ob.Append(oi != null ? oi.Name : "?");
+                    }
+                    ob.Append("  ");
+                }
+                wl(ob.ToString());
                 for (int i = 0; i < cfg.Items.Count && i < 8; i++)
                     wl("  item: " + cfg.Items[i].Name + " | " + cfg.Items[i].Path);
 

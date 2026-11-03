@@ -8,12 +8,14 @@ namespace DesktopDock
 {
     public class DockItem
     {
+        /// <summary>稳定标识，用于在统一顺序表里引用该项。</summary>
+        public string Id { get; set; }
         public string Name { get; set; }
         public string Path { get; set; }
         /// <summary>空字符串表示顶层；否则是所属分组名。</summary>
         public string Group { get; set; }
 
-        public DockItem() { Name = ""; Path = ""; Group = ""; }
+        public DockItem() { Id = ""; Name = ""; Path = ""; Group = ""; }
     }
 
     public class DockConfig
@@ -25,7 +27,14 @@ namespace DesktopDock
         public int Gap { get; set; }
         public double PanelOpacity { get; set; }
         public List<DockItem> Items { get; set; }
-        /// <summary>分组格子的显示顺序（可拖动调整）。</summary>
+
+        /// <summary>
+        /// 顶层的统一显示顺序：图标与分组合排在一条序列里。
+        /// 元素形如 "i:&lt;Id&gt;"（普通图标）或 "g:&lt;分组名&gt;"（分组格子）。
+        /// </summary>
+        public List<string> Order { get; set; }
+
+        /// <summary>旧版字段，只用于把老配置迁移进 Order。</summary>
         public List<string> GroupOrder { get; set; }
 
         public DockConfig()
@@ -37,6 +46,7 @@ namespace DesktopDock
             Gap = 12;
             PanelOpacity = 0.97;
             Items = new List<DockItem>();
+            Order = new List<string>();
             GroupOrder = new List<string>();
         }
 
@@ -48,6 +58,8 @@ namespace DesktopDock
             if (Gap < 4 || Gap > 40) Gap = 12;
             if (PanelOpacity < 0.5 || PanelOpacity > 1.0) PanelOpacity = 0.97;
             if (Items == null) Items = new List<DockItem>();
+
+            Dictionary<string, bool> usedIds = new Dictionary<string, bool>();
             for (int i = 0; i < Items.Count; i++)
             {
                 DockItem it = Items[i];
@@ -55,34 +67,149 @@ namespace DesktopDock
                 if (it.Name == null) it.Name = "";
                 if (it.Path == null) it.Path = "";
                 if (it.Group == null) it.Group = "";
+                if (it.Id == null) it.Id = "";
+                if (it.Id.Length == 0 || usedIds.ContainsKey(it.Id))
+                {
+                    string id;
+                    do { id = Guid.NewGuid().ToString("N").Substring(0, 8); } while (usedIds.ContainsKey(id));
+                    it.Id = id;
+                }
+                usedIds[it.Id] = true;
             }
+
             if (GroupOrder == null) GroupOrder = new List<string>();
-            // 去掉已不存在或重复的分组名
-            for (int i = GroupOrder.Count - 1; i >= 0; i--)
+            if (Order == null) Order = new List<string>();
+            if (Order.Count == 0) Order = BuildDefaultOrder();
+
+            // 清掉失效项（图标不存在 / 图标已进分组 / 分组不存在），并去重
+            Dictionary<string, bool> seen = new Dictionary<string, bool>();
+            for (int i = Order.Count - 1; i >= 0; i--)
             {
-                string g = GroupOrder[i];
-                if (string.IsNullOrEmpty(g) || GroupOrder.IndexOf(g) != i || !HasGroup(g))
-                    GroupOrder.RemoveAt(i);
+                string tok = Order[i];
+                if (!IsTokenValid(tok) || seen.ContainsKey(tok)) { Order.RemoveAt(i); continue; }
+                seen[tok] = true;
             }
+            // 补上还没登记的（新加入的图标/分组追加到末尾）
+            List<string> missing = BuildDefaultOrder();
+            for (int i = 0; i < missing.Count; i++)
+                if (!seen.ContainsKey(missing[i])) Order.Add(missing[i]);
         }
 
-        public bool HasGroup(string g)
-        {
-            for (int i = 0; i < Items.Count; i++)
-                if (Items[i].Group == g) return true;
-            return false;
-        }
-
-        /// <summary>分组显示顺序：先按 GroupOrder，再把未登记的追加到末尾。</summary>
-        public List<string> Groups()
+        /// <summary>默认顺序：顶层图标按 Items 顺序在前，分组按旧 GroupOrder 顺序在后。</summary>
+        private List<string> BuildDefaultOrder()
         {
             List<string> list = new List<string>();
+            for (int i = 0; i < Items.Count; i++)
+            {
+                DockItem it = Items[i];
+                if (it.Group != null && it.Group.Length == 0) list.Add("i:" + it.Id);
+            }
+            List<string> groups = GroupsByAppearance();
+            for (int i = 0; i < groups.Count; i++) list.Add("g:" + groups[i]);
+            return list;
+        }
+
+        private List<string> GroupsByAppearance()
+        {
+            List<string> list = new List<string>();
+            // 优先沿用旧字段里记录的分组顺序
             if (GroupOrder != null)
             {
                 for (int i = 0; i < GroupOrder.Count; i++)
                 {
                     string g = GroupOrder[i];
                     if (!string.IsNullOrEmpty(g) && HasGroup(g) && !list.Contains(g)) list.Add(g);
+                }
+            }
+            for (int i = 0; i < Items.Count; i++)
+            {
+                string g = Items[i].Group;
+                if (g != null && g.Length > 0 && !list.Contains(g)) list.Add(g);
+            }
+            return list;
+        }
+
+        private bool IsTokenValid(string tok)
+        {
+            if (string.IsNullOrEmpty(tok) || tok.Length < 3) return false;
+            if (tok.StartsWith("g:"))
+            {
+                string g = tok.Substring(2);
+                return g.Length > 0 && HasGroup(g);
+            }
+            if (tok.StartsWith("i:"))
+            {
+                DockItem it = ById(tok.Substring(2));
+                return it != null && it.Group.Length == 0;
+            }
+            return false;
+        }
+
+        public DockItem ById(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            for (int i = 0; i < Items.Count; i++)
+                if (Items[i].Id == id) return Items[i];
+            return null;
+        }
+
+        public static string ItemToken(DockItem it) { return "i:" + it.Id; }
+        public static string GroupToken(string g) { return "g:" + g; }
+
+        public int IndexOfToken(string tok)
+        {
+            if (Order == null) return -1;
+            return Order.IndexOf(tok);
+        }
+
+        public void RemoveToken(string tok)
+        {
+            if (Order == null || tok == null) return;
+            int i = Order.IndexOf(tok);
+            if (i >= 0) Order.RemoveAt(i);
+        }
+
+        public void InsertToken(int index, string tok)
+        {
+            if (Order == null || tok == null) return;
+            if (index < 0 || index > Order.Count) index = Order.Count;
+            Order.Insert(index, tok);
+        }
+
+        /// <summary>把顶层图标或分组放到指定位置（用于拖拽换位）。</summary>
+        public void MoveTokenTo(string tok, int index)
+        {
+            if (Order == null) return;
+            int cur = Order.IndexOf(tok);
+            if (cur < 0) return;
+            Order.RemoveAt(cur);
+            if (index > Order.Count) index = Order.Count;
+            if (index < 0) index = 0;
+            Order.Insert(index, tok);
+        }
+
+        public bool HasGroup(string g)
+        {
+            if (string.IsNullOrEmpty(g)) return false;
+            for (int i = 0; i < Items.Count; i++)
+                if (Items[i].Group == g) return true;
+            return false;
+        }
+
+        /// <summary>所有分组名，按统一顺序表里的排列返回。</summary>
+        public List<string> Groups()
+        {
+            List<string> list = new List<string>();
+            if (Order != null)
+            {
+                for (int i = 0; i < Order.Count; i++)
+                {
+                    string tok = Order[i];
+                    if (tok.Length > 2 && tok.StartsWith("g:"))
+                    {
+                        string g = tok.Substring(2);
+                        if (HasGroup(g) && !list.Contains(g)) list.Add(g);
+                    }
                 }
             }
             for (int i = 0; i < Items.Count; i++)

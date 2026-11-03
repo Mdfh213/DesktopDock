@@ -1,6 +1,6 @@
 # DesktopDock · 桌面侧边栏
 
-[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](#)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](#)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Size](https://img.shields.io/badge/size-62%20KB-lightgrey.svg)](#)
@@ -28,7 +28,7 @@
 | **手机式分组** | 拖到另一个图标上**长按 0.6 秒**松手，即合并成"文件夹格子"，双击进入 |
 | **图标换位** | 拖到另一个图标上松手（不长按）＝两者**交换位置**，顺序存入配置 |
 | **双击打开** | 单击只选中，**双击**图标才启动程序（避免误触），分组同样双击进入 |
-| **分组可拖动排序** | 把一个分组格子拖到另一个分组上，即可交换两者的排列顺序 |
+| **图标与分组可混排** | 顶层是一个统一顺序表：把**分组**拖到任意图标上即可互换位置，图标↔图标、图标↔分组、分组↔分组都支持 |
 | **拖拽时自动滚动** | 拖动图标时鼠标贴住上/下边缘，面板会自动滚动，方便拖到看不见的位置 |
 | **滚动** | 三种方式：滚轮 / 鼠标贴住面板上边缘或下边缘自动滚 / 点右上 ▲、右下 ▼ 翻页 |
 | **添加文件/文件夹** | 「+ 添加」格子支持多选快捷方式和文件夹 |
