@@ -100,15 +100,6 @@ src/
 - 顶层顺序存在 `config.json` 的 `Order` 字段里，图标用 `Id` 引用；手改配置时不要删 `Id`，否则该项会被当成新项目追加到末尾。
 - 关机/强杀进程不会执行退出清理，但程序不写注册表（除开机自启）、不在系统目录留文件，直接删文件夹即可卸载。
 
-## 发布 / 同步
-
-```bat
-push-to-gitee.bat   推送到 https://gitee.com/Dusk_Luminance/DesktopDock
-push-to-github.bat  同步到 https://github.com/Mdfh213/DesktopDock
-```
-
-两者都是 GBK 编码的批处理，双击运行；GitHub 在国内直连常被重置，脚本会提示配置代理。
-
 ## 日志
 
 出错信息写入 `dock.log`（与 exe 同目录，超过 512 KB 自动轮转为 `dock.log.1`），可直接发给我排查。
