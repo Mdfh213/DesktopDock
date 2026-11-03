@@ -268,6 +268,7 @@ namespace DesktopDock
         private int _lastClickIndex = -1;
         private int _lastClickTick;
         private int _lastMsgTick;
+        private int _lastQuickTick;
 
         // 操作反馈
         private string _toast = "";
@@ -651,7 +652,7 @@ namespace DesktopDock
             Cell c = new Cell();
             c.Item = it;
             c.Group = it.Group;
-            c.Missing = !File.Exists(it.Path) && !Directory.Exists(it.Path);
+            c.Missing = !it.Path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase) && !File.Exists(it.Path) && !Directory.Exists(it.Path);
             c.Bounds = CellRect(index, cols, startX, startY, cell, gap);
             return c;
         }
@@ -1052,10 +1053,20 @@ namespace DesktopDock
             Invalidate();
         }
 
-        /// <summary>双击才执行打开（单击只记录，避免误触）。</summary>
+        /// <summary>「返回」「添加」单击即生效；程序图标需要双击。</summary>
         private void HandleClick(int index)
         {
             if (index < 0 || index >= _cells.Count) return;
+            Cell c = _cells[index];
+
+            if (c.IsBack || c.IsAdd)
+            {
+                if (Environment.TickCount - _lastQuickTick < 400) return;   // 防止双击触发两次
+                _lastQuickTick = Environment.TickCount;
+                _lastClickIndex = -1;
+                ActivateCell(index);
+                return;
+            }
 
             if (index == _lastClickIndex && Environment.TickCount - _lastClickTick <= 450)
             {
@@ -1147,6 +1158,13 @@ namespace DesktopDock
             menu.ShowImageMargin = false;
             menu.Items.Add("添加文件…", null, delegate { AddFiles(); });
             menu.Items.Add("添加文件夹…", null, delegate { AddFolder(); });
+            ToolStripMenuItem sys = new ToolStripMenuItem("添加系统位置");
+            sys.DropDownItems.Add("此电脑", null, delegate { AddSystemItem("此电脑", "shell:MyComputerFolder"); });
+            sys.DropDownItems.Add("控制面板", null, delegate { AddSystemItem("控制面板", "shell:ControlPanelFolder"); });
+            sys.DropDownItems.Add("回收站", null, delegate { AddSystemItem("回收站", "shell:RecycleBinFolder"); });
+            sys.DropDownItems.Add("用户文件夹", null, delegate { AddSystemItem("用户文件夹", "shell:Personal"); });
+            sys.DropDownItems.Add("网络", null, delegate { AddSystemItem("网络", "shell:NetworkPlacesFolder"); });
+            menu.Items.Add(sys);
             menu.Show(Cursor.Position);
         }
 
@@ -1183,6 +1201,38 @@ namespace DesktopDock
             catch (Exception ex)
             {
                 Log.Write("添加图标失败: " + ex.Message);
+                ShowToast("添加失败：" + ex.Message, 4000);
+            }
+        }
+
+        /// <summary>添加一个 shell 命名空间位置（此电脑、控制面板等）。</summary>
+        private void AddSystemItem(string name, string shellPath)
+        {
+            try
+            {
+                for (int i = 0; i < Cfg.Items.Count; i++)
+                {
+                    if (string.Equals(Cfg.Items[i].Path, shellPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        ShowToast("已经在面板上了：" + name, 1800);
+                        return;
+                    }
+                }
+                DockItem it = new DockItem();
+                it.Path = shellPath;
+                it.Name = name;
+                it.Group = _group;
+                Cfg.Items.Add(it);
+                Cfg.Normalize();
+                ConfigStore.Save(Cfg);
+                _panel.RefreshConfig();
+                _mgr.RefreshPanels();
+                ShowToast("已添加：" + name, 1600);
+                Log.Write("添加系统位置 " + shellPath);
+            }
+            catch (Exception ex)
+            {
+                Log.Write("添加系统位置失败: " + ex.Message);
                 ShowToast("添加失败：" + ex.Message, 4000);
             }
         }
@@ -1318,6 +1368,13 @@ namespace DesktopDock
             try
             {
                 Log.Write("Launch: " + path);
+                if (path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase))
+                {
+                    // 此电脑 / 控制面板 / 回收站 这类是命名空间，不是文件路径
+                    Process.Start("explorer.exe", "\"" + path + "\"");
+                    Log.Write("Launch OK (shell 位置) " + path);
+                    return true;
+                }
                 if (!File.Exists(path) && !Directory.Exists(path))
                 {
                     Log.Write("  目标文件不存在");

@@ -22,7 +22,11 @@ namespace DesktopDock
             Image img = null;
             try
             {
-                if (File.Exists(path) || Directory.Exists(path))
+                if (path != null && path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase))
+                {
+                    img = GetShellIcon(path, size);
+                }
+                else if (File.Exists(path) || Directory.Exists(path))
                 {
                     using (Icon ico = Icon.ExtractAssociatedIcon(path))
                     {
@@ -30,15 +34,7 @@ namespace DesktopDock
                         {
                             using (Bitmap src = ico.ToBitmap())
                             {
-                                Bitmap dst = new Bitmap(size, size);
-                                using (Graphics g = Graphics.FromImage(dst))
-                                {
-                                    g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                                    g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                                    g.SmoothingMode = SmoothingMode.HighQuality;
-                                    g.DrawImage(src, 0, 0, size, size);
-                                }
-                                img = dst;
+                                img = Scale(src, size);
                             }
                         }
                     }
@@ -49,6 +45,71 @@ namespace DesktopDock
             if (img == null) img = Fallback(Path.GetFileNameWithoutExtension(path), size);
             _cache[key] = img;
             return img;
+        }
+
+        private static Image Scale(Bitmap src, int size)
+        {
+            Bitmap dst = new Bitmap(size, size);
+            using (Graphics g = Graphics.FromImage(dst))
+            {
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                g.SmoothingMode = SmoothingMode.HighQuality;
+                g.DrawImage(src, 0, 0, size, size);
+            }
+            return dst;
+        }
+
+        // ---- 取 shell: 命名空间项的图标（此电脑 / 控制面板 / 回收站…）----
+        [System.Runtime.InteropServices.DllImport("shell32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        private static extern int SHParseDisplayName(string pszName, IntPtr pbc, out IntPtr ppidl, uint sfgaoIn, out uint psfgaoOut);
+
+        [System.Runtime.InteropServices.DllImport("shell32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        private static extern IntPtr SHGetFileInfo(IntPtr pidl, uint dwFileAttributes, ref SHFILEINFO psfi, uint cbFileInfo, uint uFlags);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool DestroyIcon(IntPtr hIcon);
+
+        [System.Runtime.InteropServices.DllImport("ole32.dll")]
+        private static extern void CoTaskMemFree(IntPtr p);
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential, CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        private struct SHFILEINFO
+        {
+            public IntPtr hIcon;
+            public int iIcon;
+            public uint dwAttributes;
+            [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.ByValTStr, SizeConst = 260)]
+            public string szDisplayName;
+            [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.ByValTStr, SizeConst = 80)]
+            public string szTypeName;
+        }
+
+        private static Image GetShellIcon(string shellPath, int size)
+        {
+            IntPtr pidl = IntPtr.Zero;
+            try
+            {
+                uint attrs;
+                if (SHParseDisplayName(shellPath, IntPtr.Zero, out pidl, 0, out attrs) != 0 || pidl == IntPtr.Zero)
+                    return null;
+
+                SHFILEINFO fi = new SHFILEINFO();
+                const uint SHGFI_ICON = 0x000000100, SHGFI_LARGEICON = 0x000000000, SHGFI_PIDL = 0x000000008;
+                IntPtr ok = SHGetFileInfo(pidl, 0, ref fi, (uint)System.Runtime.InteropServices.Marshal.SizeOf(typeof(SHFILEINFO)),
+                                          SHGFI_ICON | SHGFI_LARGEICON | SHGFI_PIDL);
+                if (ok == IntPtr.Zero || fi.hIcon == IntPtr.Zero) return null;
+
+                try
+                {
+                    using (Icon ico = Icon.FromHandle(fi.hIcon))
+                    using (Bitmap src = ico.ToBitmap())
+                        return Scale(src, size);
+                }
+                finally { DestroyIcon(fi.hIcon); }
+            }
+            catch { return null; }
+            finally { if (pidl != IntPtr.Zero) CoTaskMemFree(pidl); }
         }
 
         private static Image Fallback(string name, int size)

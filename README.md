@@ -1,6 +1,6 @@
 # DesktopDock · 桌面侧边栏
 
-[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](#)
+[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](#)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Size](https://img.shields.io/badge/size-62%20KB-lightgrey.svg)](#)
@@ -31,7 +31,7 @@
 | **图标与分组可混排** | 顶层是一个统一顺序表：把**分组**拖到任意图标上即可互换位置，图标↔图标、图标↔分组、分组↔分组都支持 |
 | **拖拽时自动滚动** | 拖动图标时鼠标贴住上/下边缘，面板会自动滚动，方便拖到看不见的位置 |
 | **滚动** | 三种方式：滚轮 / 鼠标贴住面板上边缘或下边缘自动滚 / 点右上 ▲、右下 ▼ 翻页 |
-| **添加文件/文件夹** | 「+ 添加」格子支持多选快捷方式和文件夹 |
+| **添加文件/文件夹/系统位置** | 「+ 添加」支持多选快捷方式、文件夹，以及此电脑 / 控制面板 / 回收站 / 用户文件夹 / 网络 |
 | **托盘常驻** | 图标大小、暂停边缘响应、重扫桌面、开机自启、查看日志、退出 |
 | **高 DPI 适配** | 按系统缩放自动放大，分辨率/缩放变化后自动重排 |
 
