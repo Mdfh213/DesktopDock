@@ -3,20 +3,22 @@
 [![Version](https://img.shields.io/badge/version-1.4.3-blue.svg)](#)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Size](https://img.shields.io/badge/size-62%20KB-lightgrey.svg)](#)
+[![Size](https://img.shields.io/badge/size-70%20KB-lightgrey.svg)](#)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-success.svg)](#)
 [![Build](https://img.shields.io/badge/build-csc.exe%20only-orange.svg)](#重新编译)
+[![Generated with](https://img.shields.io/badge/generated%20with-DeepSeek%20Harness-6D5EF8.svg)](#)
 
 轻量、简约的桌面侧边栏启动器。把图标收进屏幕左右两侧的抽屉里，鼠标贴边滑出，点一下就启动。
 
-**单文件 · 零依赖 · 约 62 KB · 免安装 · 只用系统自带的 `csc.exe` 就能编译**
+**单文件 · 零依赖 · 约 70 KB · 免安装 · 只用系统自带的 `csc.exe` 就能编译**
+
+> 本项目由 **DeepSeek Harness（DSH）** 辅助生成并持续迭代：代码、文档与版本发布均由 DSH 会话完成，使用者负责提出需求与验收。
 
 > **面向使用者的完整说明：[使用说明.md](使用说明.md)**（安装、图标操作、滚动、托盘菜单、常见问题）
 > 本文档偏开发者视角：功能、架构、配置字段、已知限制。
 
 ---
 
----
 
 ## 功能
 
