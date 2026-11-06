@@ -40,7 +40,7 @@ namespace DesktopDock
         public DockConfig()
         {
             HideDesktopIcons = false;   // 桌面图标交给用户自己管理
-            HotEdgeWidth = 6;
+            HotEdgeWidth = 3;
             PanelWidth = 328;
             CellSize = 84;
             Gap = 12;
@@ -52,7 +52,7 @@ namespace DesktopDock
 
         public void Normalize()
         {
-            if (HotEdgeWidth < 2 || HotEdgeWidth > 24) HotEdgeWidth = 6;
+            if (HotEdgeWidth < 1 || HotEdgeWidth > 24) HotEdgeWidth = 3;
             if (PanelWidth < 220 || PanelWidth > 640) PanelWidth = 328;
             if (CellSize < 56 || CellSize > 160) CellSize = 84;
             if (Gap < 4 || Gap > 40) Gap = 12;

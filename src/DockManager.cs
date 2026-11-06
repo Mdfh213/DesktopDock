@@ -259,12 +259,30 @@ namespace DesktopDock
         }
 
         /// <summary>滚轮：只作用于鼠标所在、且正在显示的面板。</summary>
+        private void AddEdgeItem(ToolStripMenuItem parent, string label, int px)
+        {
+            ToolStripMenuItem mi = new ToolStripMenuItem(label);
+            mi.Tag = px;
+            mi.Click += delegate { SetHotEdgeWidth(px); };
+            parent.DropDownItems.Add(mi);
+        }
         private void AddSizeItem(ToolStripMenuItem parent, string label, int size)
         {
             ToolStripMenuItem mi = new ToolStripMenuItem(label);
             mi.Tag = size;
             mi.Click += delegate { SetCellSize(size); };
             parent.DropDownItems.Add(mi);
+        }
+
+        /// <summary>调整触发热区宽度（需要重建边缘条窗口，宽度在建时固定）。</summary>
+        public void SetHotEdgeWidth(int px)
+        {
+            if (px < 1) px = 1;
+            if (px > 24) px = 24;
+            Cfg.HotEdgeWidth = px;
+            ConfigStore.Save(Cfg);
+            RebuildUi();
+            Log.Write("触发热区宽度=" + px + " px");
         }
 
         /// <summary>调整图标大小（同时按比例调整面板宽度）。</summary>
@@ -410,6 +428,23 @@ namespace DesktopDock
                 }
             };
             menu.Items.Add(sizeMenu);
+
+            ToolStripMenuItem edgeMenu = new ToolStripMenuItem("触发热区宽度");
+            AddEdgeItem(edgeMenu, "1 px（极窄）", 1);
+            AddEdgeItem(edgeMenu, "2 px", 2);
+            AddEdgeItem(edgeMenu, "3 px（默认）", 3);
+            AddEdgeItem(edgeMenu, "4 px", 4);
+            AddEdgeItem(edgeMenu, "6 px", 6);
+            AddEdgeItem(edgeMenu, "8 px", 8);
+            menu.Opening += delegate
+            {
+                for (int i = 0; i < edgeMenu.DropDownItems.Count; i++)
+                {
+                    ToolStripMenuItem mi = edgeMenu.DropDownItems[i] as ToolStripMenuItem;
+                    if (mi != null && mi.Tag != null) mi.Checked = ((int)mi.Tag) == Cfg.HotEdgeWidth;
+                }
+            };
+            menu.Items.Add(edgeMenu);
             menu.Items.Add(new ToolStripSeparator());
 
             menu.Items.Add(new ToolStripSeparator());

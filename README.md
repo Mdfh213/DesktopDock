@@ -1,6 +1,6 @@
 # DesktopDock · 桌面侧边栏
 
-[![Version](https://img.shields.io/badge/version-1.4.2-blue.svg)](#)
+[![Version](https://img.shields.io/badge/version-1.4.3-blue.svg)](#)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Size](https://img.shields.io/badge/size-62%20KB-lightgrey.svg)](#)

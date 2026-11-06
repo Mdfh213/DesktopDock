@@ -39,6 +39,15 @@ namespace DesktopDock
             for (int i = Math.Max(0, cfg.Order.Count - 3); i < cfg.Order.Count; i++) Console.Write(TokenName(cfg, cfg.Order[i]) + "  ");
             Console.WriteLine();
 
+            Console.WriteLine("=== 面板完整排列（上→下，左→右）===");
+            for (int i = 0; i < cfg.Order.Count; i++)
+            {
+                string mark = (i < 3) ? "  " : "";
+                Console.Write((i + 1).ToString().PadLeft(2) + "." + TokenName(cfg, cfg.Order[i]) + "   ");
+                if ((i + 1) % 3 == 0) Console.WriteLine();
+            }
+            Console.WriteLine();
+
             bool okCount = cfg.Items.Count == beforeItems + 2;
             bool okAdded = added == 2 && skipped == 5;
             Console.WriteLine("检查: 条目 +2 = " + okCount + " / 新增2跳过5 = " + okAdded);
