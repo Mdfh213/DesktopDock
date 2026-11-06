@@ -219,6 +219,43 @@ namespace DesktopDock
             }
             return list;
         }
+        /// <summary>
+        /// 把一次桌面扫描的结果**追加**到现有配置末尾：
+        /// 已存在的路径跳过，不改动任何已有条目、分组和排列顺序。
+        /// 返回新增数量，skipped 返回因已存在而跳过的数量。
+        /// </summary>
+        public int AppendScanned(DockConfig fresh, out int skipped)
+        {
+            int added = 0;
+            skipped = 0;
+            if (fresh == null || fresh.Items == null) return 0;
+
+            Dictionary<string, bool> known = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < Items.Count; i++)
+            {
+                string p = Items[i] == null ? null : Items[i].Path;
+                if (!string.IsNullOrEmpty(p) && !known.ContainsKey(p)) known[p] = true;
+            }
+
+            for (int i = 0; i < fresh.Items.Count; i++)
+            {
+                DockItem src = fresh.Items[i];
+                if (src == null || string.IsNullOrEmpty(src.Path)) continue;
+                if (known.ContainsKey(src.Path)) { skipped++; continue; }
+
+                DockItem copy = new DockItem();
+                copy.Path = src.Path;
+                copy.Name = src.Name;
+                copy.Group = "";            // 新扫到的统一放顶层
+                Items.Add(copy);
+                known[src.Path] = true;
+                added++;
+            }
+
+            Normalize();                    // 生成 Id，并把 token 追加到 Order 末尾
+            return added;
+        }
+
     }
 
     internal static class ConfigStore

@@ -414,13 +414,29 @@ namespace DesktopDock
 
             menu.Items.Add(new ToolStripSeparator());
 
-            ToolStripMenuItem rescan = new ToolStripMenuItem("重新扫描桌面…");
+            ToolStripMenuItem rescan = new ToolStripMenuItem("重新扫描桌面（追加新图标）");
             rescan.Click += delegate
             {
-                DockConfig fresh = ConfigStore.ScanDesktop();
-                Cfg.Items = fresh.Items;
-                ConfigStore.Save(Cfg);
-                RefreshPanels();
+                try
+                {
+                    DockConfig fresh = ConfigStore.ScanDesktop();
+                    int skipped;
+                    int added = Cfg.AppendScanned(fresh, out skipped);
+                    ConfigStore.Save(Cfg);
+                    RefreshPanels();
+                    Log.Write("重新扫描桌面: 新增 " + added + " 项，已存在 " + skipped + " 项（原有布局保持不变）");
+                    if (_tray != null)
+                    {
+                        string tip = added > 0
+                            ? "新增 " + added + " 个图标，已追加到末尾（原有布局不变）"
+                            : "没有发现新图标，布局保持不变";
+                        _tray.ShowBalloonTip(2500, "重新扫描桌面", tip, ToolTipIcon.Info);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Write("重新扫描桌面失败: " + ex.Message);
+                }
             };
             menu.Items.Add(rescan);
 
