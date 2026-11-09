@@ -70,7 +70,7 @@ namespace DesktopDock
                 if (it.Id == null) it.Id = "";
                 // 旧版用 shell:ControlPanelFolder 打开的是「所有控制面板项」，
                 // 与桌面快捷方式（控制面板主页）不是同一个文件夹，视图设置不共通。
-                if (it.Path == "shell:ControlPanelFolder") it.Path = "::{26EE0668-A00A-44D7-9371-BEB064C98683}";
+                if (it.Path == "::{26EE0668-A00A-44D7-9371-BEB064C98683}") it.Path = "shell:ControlPanelFolder";
                 if (it.Id.Length == 0 || usedIds.ContainsKey(it.Id))
                 {
                     string id;

@@ -274,6 +274,37 @@ namespace DesktopDock
             parent.DropDownItems.Add(mi);
         }
 
+        /// <summary>设置「所有控制面板项」的图标视图：0=大图标，1=小图标。</summary>
+        public void SetControlPanelView(int value)
+        {
+            try
+            {
+                using (RegistryKey k = Registry.CurrentUser.CreateSubKey(
+                    @"Software\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel"))
+                {
+                    k.SetValue("AllItemsIconView", value, RegistryValueKind.DWord);
+                }
+                Log.Write("控制面板视图 = " + (value == 1 ? "小图标" : "大图标"));
+            }
+            catch (Exception ex) { Log.Write("设置控制面板视图失败: " + ex.Message); }
+        }
+
+        /// <summary>读取当前控制面板视图设置（null 表示未设置）。</summary>
+        public static int? GetControlPanelView()
+        {
+            try
+            {
+                using (RegistryKey k = Registry.CurrentUser.OpenSubKey(
+                    @"Software\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel"))
+                {
+                    if (k == null) return null;
+                    object v = k.GetValue("AllItemsIconView");
+                    if (v == null) return null;
+                    return Convert.ToInt32(v);
+                }
+            }
+            catch { return null; }
+        }
         /// <summary>调整触发热区宽度（需要重建边缘条窗口，宽度在建时固定）。</summary>
         public void SetHotEdgeWidth(int px)
         {
@@ -445,6 +476,23 @@ namespace DesktopDock
                 }
             };
             menu.Items.Add(edgeMenu);
+
+            ToolStripMenuItem cpMenu = new ToolStripMenuItem("控制面板视图");
+            ToolStripMenuItem cpLarge = new ToolStripMenuItem("大图标");
+            cpLarge.Tag = 0;
+            cpLarge.Click += delegate { SetControlPanelView(0); };
+            ToolStripMenuItem cpSmall = new ToolStripMenuItem("小图标");
+            cpSmall.Tag = 1;
+            cpSmall.Click += delegate { SetControlPanelView(1); };
+            cpMenu.DropDownItems.Add(cpLarge);
+            cpMenu.DropDownItems.Add(cpSmall);
+            menu.Opening += delegate
+            {
+                int? cur = GetControlPanelView();
+                cpLarge.Checked = (cur == 0);
+                cpSmall.Checked = (cur == 1);
+            };
+            menu.Items.Add(cpMenu);
             menu.Items.Add(new ToolStripSeparator());
 
             menu.Items.Add(new ToolStripSeparator());

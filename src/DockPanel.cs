@@ -1182,7 +1182,7 @@ namespace DesktopDock
             menu.Items.Add("添加文件夹…", null, delegate { AddFolder(); });
             ToolStripMenuItem sys = new ToolStripMenuItem("添加系统位置");
             sys.DropDownItems.Add("此电脑", null, delegate { AddSystemItem("此电脑", "shell:MyComputerFolder"); });
-            sys.DropDownItems.Add("控制面板", null, delegate { AddSystemItem("控制面板", "::{26EE0668-A00A-44D7-9371-BEB064C98683}"); });
+            sys.DropDownItems.Add("控制面板", null, delegate { AddSystemItem("控制面板", "shell:ControlPanelFolder"); });
             sys.DropDownItems.Add("所有控制面板项", null, delegate { AddSystemItem("所有控制面板项", "::{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}"); });
             sys.DropDownItems.Add("回收站", null, delegate { AddSystemItem("回收站", "shell:RecycleBinFolder"); });
             sys.DropDownItems.Add("用户文件夹", null, delegate { AddSystemItem("用户文件夹", "shell:Personal"); });
