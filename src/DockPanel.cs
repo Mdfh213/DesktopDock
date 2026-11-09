@@ -1391,10 +1391,25 @@ namespace DesktopDock
                 Log.Write("Launch: " + path);
                 if (path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase))
                 {
-                    // 此电脑 / 控制面板 / 回收站 这类是命名空间，不是文件路径
-                    Process.Start("explorer.exe", "\"" + path + "\"");
-                    Log.Write("Launch OK (shell 位置) " + path);
-                    return true;
+                    // 此电脑 / 控制面板 / 回收站 这类是命名空间，不是文件路径。
+                    // 必须走 ShellExecute 交给现有 Explorer 处理：
+                    // 直接 explorer.exe "shell:xxx" 会另起进程开窗，窗口视图不会被保存，
+                    // 结果每次都以默认（大图标）打开。
+                    try
+                    {
+                        ProcessStartInfo psi = new ProcessStartInfo(path);
+                        psi.UseShellExecute = true;
+                        Process.Start(psi);
+                        Log.Write("Launch OK (shell 位置/ShellExecute) " + path);
+                        return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Write("  ShellExecute 失败，回退 explorer.exe: " + ex.Message);
+                        Process.Start("explorer.exe", "\"" + path + "\"");
+                        Log.Write("Launch OK (shell 位置/explorer) " + path);
+                        return true;
+                    }
                 }
                 if (!File.Exists(path) && !Directory.Exists(path))
                 {
