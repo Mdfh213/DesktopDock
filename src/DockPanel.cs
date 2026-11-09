@@ -673,7 +673,8 @@ namespace DesktopDock
             Cell c = new Cell();
             c.Item = it;
             c.Group = it.Group;
-            c.Missing = !it.Path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase) && !File.Exists(it.Path) && !Directory.Exists(it.Path);
+            bool nsPath = it.Path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase) || it.Path.StartsWith("::{", StringComparison.Ordinal);
+            c.Missing = !nsPath && !File.Exists(it.Path) && !Directory.Exists(it.Path);
             c.Bounds = CellRect(index, cols, startX, startY, cell, gap);
             return c;
         }
@@ -1181,7 +1182,8 @@ namespace DesktopDock
             menu.Items.Add("添加文件夹…", null, delegate { AddFolder(); });
             ToolStripMenuItem sys = new ToolStripMenuItem("添加系统位置");
             sys.DropDownItems.Add("此电脑", null, delegate { AddSystemItem("此电脑", "shell:MyComputerFolder"); });
-            sys.DropDownItems.Add("控制面板", null, delegate { AddSystemItem("控制面板", "shell:ControlPanelFolder"); });
+            sys.DropDownItems.Add("控制面板", null, delegate { AddSystemItem("控制面板", "::{26EE0668-A00A-44D7-9371-BEB064C98683}"); });
+            sys.DropDownItems.Add("所有控制面板项", null, delegate { AddSystemItem("所有控制面板项", "::{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}"); });
             sys.DropDownItems.Add("回收站", null, delegate { AddSystemItem("回收站", "shell:RecycleBinFolder"); });
             sys.DropDownItems.Add("用户文件夹", null, delegate { AddSystemItem("用户文件夹", "shell:Personal"); });
             sys.DropDownItems.Add("网络", null, delegate { AddSystemItem("网络", "shell:NetworkPlacesFolder"); });
@@ -1389,7 +1391,7 @@ namespace DesktopDock
             try
             {
                 Log.Write("Launch: " + path);
-                if (path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase))
+                if (path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase) || path.StartsWith("::{", StringComparison.Ordinal))
                 {
                     // 此电脑 / 控制面板 / 回收站 这类是命名空间，不是文件路径。
                     // 必须走 ShellExecute 交给现有 Explorer 处理：
