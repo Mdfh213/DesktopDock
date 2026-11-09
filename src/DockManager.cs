@@ -16,7 +16,6 @@ namespace DesktopDock
         private readonly List<EdgeZone> _zones = new List<EdgeZone>();
         private readonly List<DockPanel> _panels = new List<DockPanel>();
         private readonly Timer _fsTimer = new Timer();
-        private readonly Timer _iconTimer = new Timer();
         private readonly Timer _hotTimer = new Timer();
         private readonly Timer _dispTimer = new Timer();
         private string _dispSignature = "";
@@ -36,7 +35,7 @@ namespace DesktopDock
 
         public void Start()
         {
-            Log.Write("Start: begin");
+            Log.Debug("Start: begin");
             BuildUi();
             Log.Write("Start: ui built, zones=" + _zones.Count + " panels=" + _panels.Count);
 
@@ -55,7 +54,7 @@ namespace DesktopDock
             _dispTimer.Start();
 
             CreateTray();
-            Log.Write("Start: tray ok");
+            Log.Debug("Start: tray ok");
 
             // 滚轮：走 Raw Input（不需要焦点，也不依赖钩子）
             _rawWheel = new RawWheelSource(OnWheel);
@@ -70,7 +69,7 @@ namespace DesktopDock
                     demo.Dispose();
                     _panels[0].KeepOpen = true;
                     _panels[0].ShowPanel();
-                    Log.Write("demo: panel forced");
+                    Log.Debug("demo: panel forced");
                     Timer probe = new Timer();
                     probe.Interval = 900;
                     probe.Tick += delegate
@@ -93,7 +92,7 @@ namespace DesktopDock
                     demo2.Stop();
                     demo2.Dispose();
                     _panels[0].Canvas.PageBy(1);
-                    Log.Write("demo: page down, canScroll=" + _panels[0].Canvas.CanScroll);
+                    Log.Debug("demo: page down, canScroll=" + _panels[0].Canvas.CanScroll);
                 };
                 demo2.Start();
             }
@@ -329,17 +328,6 @@ namespace DesktopDock
             Log.Write("全屏应用结束，已恢复。");
         }
 
-        private void IconTick(object sender, EventArgs e)
-        {
-            if (!Cfg.HideDesktopIcons) return;
-            if (DeskIcons.IsCurrentlyVisible()) DeskIcons.SetVisible(false);
-        }
-
-        private void ApplyDesktopIcons()
-        {
-            if (Cfg.HideDesktopIcons) DeskIcons.SetVisible(false);
-            else DeskIcons.SetVisible(true);
-        }
 
         private void CreateTray()
         {

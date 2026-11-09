@@ -8,8 +8,6 @@ namespace DesktopDock
 {
     internal static class Native
     {
-        public const int SW_HIDE = 0;
-        public const int SW_SHOW = 5;
         public const int GWL_EXSTYLE = -20;
         public const int WS_EX_TOOLWINDOW = 0x00000080;
         public const int WS_EX_NOACTIVATE = 0x08000000;
@@ -27,14 +25,6 @@ namespace DesktopDock
             public int dwFlags;
         }
 
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        public static extern IntPtr FindWindow(string cls, string win);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        public static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string cls, string win);
-
-        [DllImport("user32.dll")]
-        public static extern bool ShowWindow(IntPtr h, int cmd);
 
         [DllImport("user32.dll")]
         public static extern bool IsWindowVisible(IntPtr h);
@@ -47,11 +37,6 @@ namespace DesktopDock
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         public static extern int GetClassName(IntPtr h, StringBuilder sb, int max);
-
-        [DllImport("user32.dll")]
-        public static extern bool EnumWindows(ProcEnum cb, IntPtr l);
-
-        public delegate bool ProcEnum(IntPtr h, IntPtr l);
 
         [DllImport("user32.dll")]
         public static extern IntPtr MonitorFromWindow(IntPtr h, int flags);
@@ -160,110 +145,6 @@ namespace DesktopDock
             StringBuilder sb = new StringBuilder(256);
             GetClassName(h, sb, 256);
             return sb.ToString();
-        }
-    }
-
-    /// <summary>全局低级鼠标钩子：面板不抢焦点，也能用滚轮滚动。</summary>
-    internal sealed class WheelHook : IDisposable
-    {
-        private const int WH_MOUSE_LL = 14;
-        private const int WM_MOUSEWHEEL = 0x020A;
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct POINT { public int X, Y; }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct MSLLHOOKSTRUCT
-        {
-            public POINT pt;
-            public int mouseData;
-            public int flags;
-            public int time;
-            public IntPtr dwExtraInfo;
-        }
-
-        private delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);
-
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern IntPtr SetWindowsHookEx(int idHook, HookProc lpfn, IntPtr hMod, uint threadId);
-        [DllImport("user32.dll")]
-        private static extern bool UnhookWindowsHookEx(IntPtr hhk);
-        [DllImport("user32.dll")]
-        private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
-
-        private readonly HookProc _proc;      // 必须保活，否则被 GC 回收后回调崩溃
-        private IntPtr _hook = IntPtr.Zero;
-        private readonly Func<Point, int, bool> _handler;
-
-        public WheelHook(Func<Point, int, bool> handler)
-        {
-            _handler = handler;
-            _proc = Callback;
-            _hook = SetWindowsHookEx(WH_MOUSE_LL, _proc, IntPtr.Zero, 0);
-        }
-
-        private IntPtr Callback(int nCode, IntPtr wParam, IntPtr lParam)
-        {
-            try
-            {
-                if (nCode >= 0 && wParam == (IntPtr)WM_MOUSEWHEEL && _hook != IntPtr.Zero)
-                {
-                    MSLLHOOKSTRUCT d = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT));
-                    int delta = (short)((d.mouseData >> 16) & 0xFFFF);
-                    if (_handler(new Point(d.pt.X, d.pt.Y), delta)) return (IntPtr)1;
-                }
-            }
-            catch { }
-            return CallNextHookEx(_hook, nCode, wParam, lParam);
-        }
-
-        public void Dispose()
-        {
-            if (_hook != IntPtr.Zero)
-            {
-                try { UnhookWindowsHookEx(_hook); } catch { }
-                _hook = IntPtr.Zero;
-            }
-        }
-    }
-
-    /// <summary>隐藏 / 显示桌面图标。</summary>
-    internal static class DeskIcons
-    {
-        private static IntPtr _listView = IntPtr.Zero;
-
-        public static IntPtr GetListView()
-        {
-            IntPtr progman = Native.FindWindow("Progman", null);
-            IntPtr defView = Native.FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
-            if (defView == IntPtr.Zero)
-            {
-                IntPtr found = IntPtr.Zero;
-                Native.EnumWindows(delegate(IntPtr h, IntPtr l)
-                {
-                    IntPtr dv = Native.FindWindowEx(h, IntPtr.Zero, "SHELLDLL_DefView", null);
-                    if (dv != IntPtr.Zero) { found = dv; return false; }
-                    return true;
-                }, IntPtr.Zero);
-                defView = found;
-            }
-            if (defView == IntPtr.Zero) return IntPtr.Zero;
-            return Native.FindWindowEx(defView, IntPtr.Zero, "SysListView32", null);
-        }
-
-        public static void SetVisible(bool visible)
-        {
-            IntPtr lv = GetListView();
-            if (lv == IntPtr.Zero) return;
-            _listView = lv;
-            Native.ShowWindow(lv, visible ? Native.SW_SHOW : Native.SW_HIDE);
-        }
-
-        public static bool IsCurrentlyVisible()
-        {
-            IntPtr lv = GetListView();
-            if (lv == IntPtr.Zero) return true;
-            return Native.IsWindowVisible(lv);
         }
     }
 

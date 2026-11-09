@@ -127,7 +127,7 @@ namespace DesktopDock
                     g.FillPath(b, p);
                 }
                 string letter = string.IsNullOrEmpty(name) ? "?" : name.Substring(0, 1).ToUpperInvariant();
-                using (Font f = new Font("Segoe UI", size * 0.42f, FontStyle.Bold, GraphicsUnit.Pixel))
+                Font f = Ui.SegoeFont(size * 0.42f, FontStyle.Bold);
                 using (StringFormat sf = new StringFormat())
                 {
                     sf.Alignment = StringAlignment.Center;
@@ -162,9 +162,29 @@ namespace DesktopDock
             return (float)(v * Scale);
         }
 
+        // 字体缓存：绘制每帧都会取字体，重复 new Font 会持续产生 GDI 句柄和 GC 压力。
+        private static readonly Dictionary<string, Font> _fonts = new Dictionary<string, Font>();
+
+        private static Font Cached(string family, float px, FontStyle style)
+        {
+            string key = family + "|" + px.ToString("0.###") + "|" + (int)style;
+            Font f;
+            if (_fonts.TryGetValue(key, out f)) return f;
+            f = new Font(family, px, style, GraphicsUnit.Pixel);
+            _fonts[key] = f;
+            return f;
+        }
+
+        /// <summary>微软雅黑（界面文字）。返回值是共享实例，调用方不要 Dispose。</summary>
         public static Font Font(double size, FontStyle style)
         {
-            return new Font("Microsoft YaHei UI", Pxf(size), style, GraphicsUnit.Pixel);
+            return Cached("Microsoft YaHei UI", Pxf(size), style);
+        }
+
+        /// <summary>Segoe UI（字母图标）。返回值是共享实例，调用方不要 Dispose。</summary>
+        public static Font SegoeFont(float px, FontStyle style)
+        {
+            return Cached("Segoe UI", px, style);
         }
 
         public static GraphicsPath Rounded(Rectangle r, int radius)
@@ -184,43 +204,6 @@ namespace DesktopDock
             path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
             path.CloseFigure();
             return path;
-        }
-
-        /// <summary>把文字裁成最多 maxLines 行，超出用省略号。</summary>
-        public static string Ellipsize(Graphics g, string text, Font font, int maxWidth, int maxLines)
-        {
-            if (string.IsNullOrEmpty(text)) return "";
-            string[] raw = text.Split('\n');
-            List<string> lines = new List<string>();
-            for (int i = 0; i < raw.Length && lines.Count < maxLines; i++)
-            {
-                string cur = "";
-                string src = raw[i];
-                for (int c = 0; c < src.Length; c++)
-                {
-                    string test = cur + src[c];
-                    if (g.MeasureString(test, font).Width > maxWidth && cur.Length > 0)
-                    {
-                        lines.Add(cur);
-                        cur = src[c].ToString();
-                        if (lines.Count >= maxLines) break;
-                    }
-                    else cur = test;
-                }
-                if (lines.Count < maxLines) lines.Add(cur);
-            }
-            string joined = string.Join("\n", lines.ToArray());
-            if (maxLines == 1) joined = joined.Replace("\n", "");
-            if (lines.Count >= maxLines)
-            {
-                string last = lines[lines.Count - 1];
-                while (last.Length > 1 && g.MeasureString(last + "…", font).Width > maxWidth)
-                    last = last.Substring(0, last.Length - 1);
-                if (last.Length < lines[lines.Count - 1].Length) last = last + "…";
-                lines[lines.Count - 1] = last;
-                joined = string.Join("\n", lines.ToArray());
-            }
-            return joined;
         }
     }
 }

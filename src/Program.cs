@@ -10,7 +10,7 @@ namespace DesktopDock
     {
         private static Mutex _mutex;
         public static bool Demo;
-        public const string Version = "1.4.3";
+        public const string Version = "1.5.0";
 
         [STAThread]
         private static void Main(string[] args)
@@ -21,6 +21,7 @@ namespace DesktopDock
             {
                 if (args[i] == "--selftest") selftest = true;
                 if (args[i] == "--demo") Demo = true;
+            if (args[i] == "--debug") Log.Verbose = true;
                 if (args[i] == "--testlaunch") testLaunch = true;
             }
 
@@ -159,10 +160,6 @@ namespace DesktopDock
                     Screen s = Screen.AllScreens[i];
                     wl("  screen" + i + " " + s.Bounds + " primary=" + s.Primary);
                 }
-
-                IntPtr lv = DeskIcons.GetListView();
-                wl("desktop listview handle = " + lv);
-                wl("desktop icons visible = " + DeskIcons.IsCurrentlyVisible());
 
                 wl("fullscreen now = " + FullscreenWatch.IsFullscreen(null));
 

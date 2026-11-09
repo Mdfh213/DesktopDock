@@ -1,16 +1,16 @@
 # DesktopDock · 桌面侧边栏
 
-[![Version](https://img.shields.io/badge/version-1.4.3-blue.svg)](#)
+[![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](#)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Size](https://img.shields.io/badge/size-70%20KB-lightgrey.svg)](#)
+[![Size](https://img.shields.io/badge/size-68%20KB-lightgrey.svg)](#)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-success.svg)](#)
 [![Build](https://img.shields.io/badge/build-csc.exe%20only-orange.svg)](#重新编译)
 [![Generated with](https://img.shields.io/badge/generated%20with-DeepSeek%20Harness-6D5EF8.svg)](#)
 
 轻量、简约的桌面侧边栏启动器。把图标收进屏幕左右两侧的抽屉里，鼠标贴边滑出，点一下就启动。
 
-**单文件 · 零依赖 · 约 70 KB · 免安装 · 只用系统自带的 `csc.exe` 就能编译**
+**单文件 · 零依赖 · 约 68 KB · 免安装 · 只用系统自带的 `csc.exe` 就能编译**
 
 > 本项目由 **DeepSeek Harness（DSH）** 辅助生成并持续迭代：代码、文档与版本发布均由 DSH 会话完成，使用者负责提出需求与验收。
 
@@ -53,7 +53,6 @@
   "PanelWidth": 330,          // 面板宽度
   "CellSize": 96,             // 格子大小（图标大小 = 格子的 56%）
   "Gap": 12,                  // 格子间距
-  "PanelOpacity": 0.97,       // 面板不透明度
 
   // 顶层顺序：图标与分组混排，可拖动调整
   // "i:<Id>" = 普通图标，"g:<分组名>" = 分组格子

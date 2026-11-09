@@ -107,19 +107,19 @@ namespace DesktopDock
             _showing = true;
             _outsideMs = 0;
             _targetX = _shownX;
-            _canvas.ResetSlide();               // 内容不做位移，整块面板移动
             if (!Visible) { _curX = _hiddenX; Native.MoveTo(Handle, _curX, Bounds.Y); Visible = true; }
             _animFromX = _curX;
             _clock.Restart();
             _hide.Start();
             _anim.Start();
+            _canvas.SetActive(true);
 
             // 激活面板：保证滚轮（发给焦点窗口）和键盘操作可用
             try
             {
                 _canvas.Focus();
                 bool ok = Native.ForceForeground(Handle);
-                Log.Write("activate me=" + Handle + " fg=" + Native.GetForegroundWindow() + " ok=" + ok);
+                Log.Debug("activate me=" + Handle + " fg=" + Native.GetForegroundWindow() + " ok=" + ok);
             }
             catch { }
         }
@@ -133,6 +133,7 @@ namespace DesktopDock
             _clock.Restart();
             _hide.Stop();
             _anim.Start();
+            _canvas.SetActive(false);
         }
 
         public Screen ScreenRef { get { return _screen; } }
@@ -166,7 +167,7 @@ namespace DesktopDock
         private void AnimTick(object sender, EventArgs e)
         {
             _animTicks++;
-            if (_animTicks <= 2) Log.Write("AnimTick #" + _animTicks + " enabled=" + _anim.Enabled);
+            if (_animTicks <= 2) Log.Debug("AnimTick #" + _animTicks + " enabled=" + _anim.Enabled);
             double p = _clock.ElapsedMilliseconds / (double)(_showing ? AnimMs : 165);
             if (p >= 1.0) p = 1.0;
 
@@ -275,61 +276,6 @@ namespace DesktopDock
         private string _toast = "";
         private int _toastUntil;
 
-        // 内容滑动（窗口不动，只平移绘制内容）
-        private float _slideX;
-        private float _slideFrom;
-        private float _slideTo;
-        private readonly System.Diagnostics.Stopwatch _slideClock = new System.Diagnostics.Stopwatch();
-        private readonly Timer _slideTimer = new Timer();
-        private Action _slideDone;
-        private bool _pollLogged;
-
-        /// <summary>清零内容位移（改用整块面板移动时调用）。</summary>
-        public void ResetSlide()
-        {
-            _slideTimer.Stop();
-            _slideDone = null;
-            _slideX = 0f;
-            Invalidate();
-        }
-
-        public void SlideIn(bool fromLeft)
-        {
-            _slideDone = null;
-            _pollLogged = false;
-            // 左侧面板从屏幕左边缘滑入，右侧面板从右边缘滑入
-            _slideFrom = fromLeft ? -Width : Width;
-            _slideTo = 0f;
-            _slideClock.Restart();
-            _slideTimer.Start();
-        }
-
-        public void SlideOut(bool toLeft, Action onDone)
-        {
-            _slideDone = onDone;
-            _slideFrom = _slideX;
-            // 回退时向各自那一侧滑出：左面板向左、右面板向右
-            _slideTo = toLeft ? -Width : Width;
-            _slideClock.Restart();
-            _slideTimer.Start();
-        }
-
-        private void SlideTick(object sender, EventArgs e)
-        {
-            double p = _slideClock.ElapsedMilliseconds / 190.0;
-            if (p >= 1.0) p = 1.0;
-            double eased = 1.0 - Math.Pow(1.0 - p, 3.0);
-            _slideX = (float)(_slideFrom + (_slideTo - _slideFrom) * eased);
-            Invalidate();
-            if (p >= 1.0)
-            {
-                _slideTimer.Stop();
-                _slideX = _slideTo;
-                Action done = _slideDone;
-                _slideDone = null;
-                if (done != null) done();
-            }
-        }
 
         public bool Dragging { get { return _dragging; } }
         public bool CanScroll { get { return _maxScroll > 0; } }
@@ -348,7 +294,7 @@ namespace DesktopDock
         /// </summary>
         private void PollClick()
         {
-            if (!_pollLogged) { _pollLogged = true; Log.Write("poll click active: timer running"); }
+
             bool down = (Native.GetAsyncKeyState(0x01) & 0x8000) != 0;
             if (down && !_pollDown)
             {
@@ -372,7 +318,7 @@ namespace DesktopDock
             int hit = HitTest(local);
             if (hit < 0) return;
 
-            Log.Write("poll click hit=" + hit + " local=" + local);
+            Log.Debug("poll click hit=" + hit + " local=" + local);
             HandleClick(hit);
         }
 
@@ -454,13 +400,10 @@ namespace DesktopDock
             // 鼠标贴住面板上下边缘时自动滚动（不依赖滚轮/焦点）
             _autoScroll.Interval = 55;
             _autoScroll.Tick += AutoScrollTick;
-            _autoScroll.Start();
 
             _snapTimer.Interval = 180;
             _snapTimer.Tick += SnapTick;
 
-            _slideTimer.Interval = 12;
-            _slideTimer.Tick += SlideTick;
         }
 
         private static bool LeftDown()
@@ -468,6 +411,12 @@ namespace DesktopDock
             return (Native.GetAsyncKeyState(0x01) & 0x8000) != 0;
         }
 
+        /// <summary>面板显示时才开始 55ms 轮询，隐藏时停止，避免空转耗电。</summary>
+        public void SetActive(bool active)
+        {
+            if (active) { if (!_autoScroll.Enabled) _autoScroll.Start(); }
+            else { if (_autoScroll.Enabled) _autoScroll.Stop(); }
+        }
         private void AutoScrollTick(object sender, EventArgs e)
         {
             if (_toastUntil != 0 && Environment.TickCount > _toastUntil)
@@ -490,7 +439,7 @@ namespace DesktopDock
                     _dragIndex = -1;
                     _mergeMode = false;
                     _mergeTimer.Stop();
-                    Log.Write("拖拽状态已强制清理");
+                    Log.Debug("拖拽状态已强制清理");
                 }
                 _press = -1;
                 Invalidate();
@@ -702,10 +651,7 @@ namespace DesktopDock
             using (SolidBrush bg = new SolidBrush(Ui.PanelBg))
                 g.FillRectangle(bg, ClientRectangle);
 
-            // 内容整体做水平位移（滑入/滑出），窗口本身不动
-            GraphicsState state = g.Save();
-            int slide = (int)Math.Round(_slideX);
-            g.TranslateTransform(slide, 0);
+
 
             using (Pen p = new Pen(Ui.PanelBorder, Math.Max(1f, Ui.Pxf(1))))
             using (GraphicsPath path = Ui.Rounded(new Rectangle(0, 0, Width - 1, Height - 1), Ui.Px(12)))
@@ -713,7 +659,7 @@ namespace DesktopDock
 
             if (_cells.Count == 0)
             {
-                using (Font f = Ui.Font(12, FontStyle.Regular))
+                Font f = Ui.Font(12, FontStyle.Regular);
                 using (SolidBrush sb = new SolidBrush(Ui.SubText))
                 using (StringFormat sf = new StringFormat())
                 {
@@ -721,7 +667,6 @@ namespace DesktopDock
                     sf.LineAlignment = StringAlignment.Center;
                     g.DrawString("桌面是空的\n右键菜单 → 重新扫描桌面", f, sb, ClientRectangle, sf);
                 }
-                g.Restore(state);
                 return;
             }
 
@@ -775,7 +720,7 @@ namespace DesktopDock
             // 底部提示（启动成功 / 失败）
             if (_toast.Length > 0)
             {
-                using (Font f = Ui.Font(11, FontStyle.Regular))
+                Font f = Ui.Font(11, FontStyle.Regular);
                 {
                     Size sz = TextRenderer.MeasureText(_toast, f);
                     int bw = Math.Min(Width - Ui.Px(24), sz.Width + Ui.Px(24));
@@ -789,7 +734,6 @@ namespace DesktopDock
                 }
             }
 
-            g.Restore(state);
         }
 
         private void DrawCell(Graphics g, int index, int alpha)
@@ -820,7 +764,7 @@ namespace DesktopDock
 
             if (c.IsBack)
             {
-                using (Font f = Ui.Font(13, FontStyle.Regular))
+                Font f = Ui.Font(13, FontStyle.Regular);
                 using (SolidBrush b = new SolidBrush(Ui.TextColor))
                 using (StringFormat sf = new StringFormat())
                 {
@@ -844,13 +788,13 @@ namespace DesktopDock
                     sf.Alignment = StringAlignment.Center;
                     sf.LineAlignment = StringAlignment.Center;
 
-                    using (Font pf = new Font("Segoe UI", _cellSize * 0.40f, FontStyle.Regular, GraphicsUnit.Pixel))
+                    Font pf = Ui.SegoeFont(_cellSize * 0.40f, FontStyle.Regular);
                     using (SolidBrush pb = new SolidBrush(Color.FromArgb(210, 220, 235)))
                     {
                         RectangleF plusRect = new RectangleF(r.X, r.Y, r.Width, r.Height * 0.66f);
                         g.DrawString("+", pf, pb, plusRect, sf);
                     }
-                    using (Font lf = new Font("Microsoft YaHei UI", _cellSize * 0.15f, FontStyle.Regular, GraphicsUnit.Pixel))
+                    Font lf = Ui.Font(_cellSize * 0.15f / Ui.Scale, FontStyle.Regular);
                     using (SolidBrush lb = new SolidBrush(Color.FromArgb(160, 170, 185)))
                     {
                         RectangleF labelR = new RectangleF(r.X, r.Y + r.Height * 0.62f, r.Width, r.Height * 0.30f);
@@ -903,7 +847,7 @@ namespace DesktopDock
 
             if (members.Count == 0)
             {
-                using (Font f = Ui.Font(16, FontStyle.Regular))
+                Font f = Ui.Font(16, FontStyle.Regular);
                 using (SolidBrush b = new SolidBrush(Ui.SubText))
                 using (StringFormat sf = new StringFormat())
                 {
@@ -929,7 +873,7 @@ namespace DesktopDock
             float px = Math.Max(9f, _cellSize * 0.135f);
             // 必须用 GDI+ 的 DrawString：TextRenderer 走 GDI，会忽略 Graphics 的
             // TranslateTransform，导致滑动时文字不跟着图标一起位移。
-            using (Font f = new Font("Microsoft YaHei UI", px, FontStyle.Regular, GraphicsUnit.Pixel))
+            Font f = Ui.SegoeFont(px, FontStyle.Regular);
             using (SolidBrush b = new SolidBrush(Color.FromArgb(alpha, Ui.TextColor)))
             using (StringFormat sf = new StringFormat())
             {
@@ -1030,7 +974,7 @@ namespace DesktopDock
                 }
                 _press = HitTest(e.Location);
                 _pressPt = e.Location;
-                Log.Write("MouseDown at=" + e.Location + " hit=" + _press + " cells=" + _cells.Count);
+                Log.Debug("MouseDown at=" + e.Location + " hit=" + _press + " cells=" + _cells.Count);
                 if (_press >= 0) Invalidate();
             }
             else if (e.Button == MouseButtons.Right)
@@ -1046,7 +990,7 @@ namespace DesktopDock
             if (e.Button != MouseButtons.Left) return;
 
             int release = HitTest(e.Location);
-            Log.Write("MouseUp at=" + e.Location + " hit=" + release + " press=" + _press + " dragging=" + _dragging);
+            Log.Debug("MouseUp at=" + e.Location + " hit=" + release + " press=" + _press + " dragging=" + _dragging);
             if (_dragging)
             {
                 _dragging = false;

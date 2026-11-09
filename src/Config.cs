@@ -20,12 +20,10 @@ namespace DesktopDock
 
     public class DockConfig
     {
-        public bool HideDesktopIcons { get; set; }
         public int HotEdgeWidth { get; set; }
         public int PanelWidth { get; set; }
         public int CellSize { get; set; }
         public int Gap { get; set; }
-        public double PanelOpacity { get; set; }
         public List<DockItem> Items { get; set; }
 
         /// <summary>
@@ -39,12 +37,10 @@ namespace DesktopDock
 
         public DockConfig()
         {
-            HideDesktopIcons = false;   // 桌面图标交给用户自己管理
             HotEdgeWidth = 3;
             PanelWidth = 328;
             CellSize = 84;
             Gap = 12;
-            PanelOpacity = 0.97;
             Items = new List<DockItem>();
             Order = new List<string>();
             GroupOrder = new List<string>();
@@ -56,7 +52,6 @@ namespace DesktopDock
             if (PanelWidth < 220 || PanelWidth > 640) PanelWidth = 328;
             if (CellSize < 56 || CellSize > 160) CellSize = 84;
             if (Gap < 4 || Gap > 40) Gap = 12;
-            if (PanelOpacity < 0.5 || PanelOpacity > 1.0) PanelOpacity = 0.97;
             if (Items == null) Items = new List<DockItem>();
 
             Dictionary<string, bool> usedIds = new Dictionary<string, bool>();
@@ -347,6 +342,15 @@ namespace DesktopDock
     internal static class Log
     {
         private static readonly object _lock = new object();
+
+        /// <summary>是否记录逐次交互（点击/拖拽等）。默认关闭，用 --debug 启动时打开。</summary>
+        public static bool Verbose;
+
+        public static void Debug(string msg)
+        {
+            if (!Verbose) return;
+            Write("  [dbg] " + msg);
+        }
 
         public static void Write(string msg)
         {
