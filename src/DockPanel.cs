@@ -1396,31 +1396,36 @@ namespace DesktopDock
         }
 
         /// <summary>
-        /// 按用户选择打开控制面板：
-        ///   0 = 类别视图（打开控制面板主页命名空间）
-        ///   1 = 大图标（所有控制面板项，AllItemsIconView=0）
-        ///   2 = 小图标（所有控制面板项，AllItemsIconView=1）
-        /// 选择保存在 config.json 的 ControlPanelView，每次打开前重新写入，因此"永久记住"。
+        /// 打开控制面板，自动沿用用户上次的选择（不写任何设置）：
+        ///   StartupPage     0 = 类别视图  -> 打开控制面板主页命名空间
+        ///                   1 = 所有项    -> 打开「所有控制面板项」，大小图标由 AllItemsIconView 决定
+        /// 与桌面上的「控制面板」快捷方式行为一致。
         /// </summary>
         private bool OpenControlPanel()
         {
-            int view = Cfg.ControlPanelView;
-            if (view < 0 || view > 2) view = 1;
+            int startup = 1, iconView = 0;
             try
             {
-                if (view == 0)
-                {
-                    Log.Write("打开控制面板: 类别视图");
-                    return Launch("::{26EE0668-A00A-44D7-9371-BEB064C98683}");
-                }
-                using (RegistryKey k = Registry.CurrentUser.CreateSubKey(
+                using (RegistryKey k = Registry.CurrentUser.OpenSubKey(
                     @"Software\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel"))
                 {
-                    k.SetValue("AllItemsIconView", view == 2 ? 1 : 0, RegistryValueKind.DWord);
+                    if (k != null)
+                    {
+                        object v1 = k.GetValue("StartupPage");
+                        if (v1 != null) startup = Convert.ToInt32(v1);
+                        object v2 = k.GetValue("AllItemsIconView");
+                        if (v2 != null) iconView = Convert.ToInt32(v2);
+                    }
                 }
-                Log.Write("打开控制面板: " + (view == 2 ? "小图标" : "大图标"));
             }
-            catch (Exception ex) { Log.Write("控制面板视图写入失败: " + ex.Message); }
+            catch (Exception ex) { Log.Write("读取控制面板视图失败: " + ex.Message); }
+
+            if (startup == 0)
+            {
+                Log.Write("打开控制面板: 类别视图（沿用上次设置）");
+                return Launch("::{26EE0668-A00A-44D7-9371-BEB064C98683}");
+            }
+            Log.Write("打开控制面板: 所有项 / " + (iconView == 1 ? "小图标" : "大图标") + "（沿用上次设置）");
             return Launch("shell:ControlPanelFolder");
         }
         public static bool Launch(string path)

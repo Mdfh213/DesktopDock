@@ -274,39 +274,6 @@ namespace DesktopDock
             parent.DropDownItems.Add(mi);
         }
 
-        private void AddCpViewItem(ToolStripMenuItem parent, string label, int value)
-        {
-            ToolStripMenuItem mi = new ToolStripMenuItem(label);
-            mi.Tag = value;
-            mi.Click += delegate { SetControlPanelView(value); };
-            parent.DropDownItems.Add(mi);
-        }
-        /// <summary>设置「所有控制面板项」的图标视图：0=大图标，1=小图标。</summary>
-        public void SetControlPanelView(int value)
-        {
-            if (value < 0 || value > 2) value = 1;
-            Cfg.ControlPanelView = value;
-            ConfigStore.Save(Cfg);
-            string[] names = { "类别视图", "大图标", "小图标" };
-            Log.Write("控制面板打开方式 = " + names[value] + "（下次打开生效）");
-        }
-
-        /// <summary>读取当前控制面板视图设置（null 表示未设置）。</summary>
-        public static int? GetControlPanelView()
-        {
-            try
-            {
-                using (RegistryKey k = Registry.CurrentUser.OpenSubKey(
-                    @"Software\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel"))
-                {
-                    if (k == null) return null;
-                    object v = k.GetValue("AllItemsIconView");
-                    if (v == null) return null;
-                    return Convert.ToInt32(v);
-                }
-            }
-            catch { return null; }
-        }
         /// <summary>调整触发热区宽度（需要重建边缘条窗口，宽度在建时固定）。</summary>
         public void SetHotEdgeWidth(int px)
         {
@@ -479,19 +446,6 @@ namespace DesktopDock
             };
             menu.Items.Add(edgeMenu);
 
-            ToolStripMenuItem cpMenu = new ToolStripMenuItem("控制面板打开方式");
-            AddCpViewItem(cpMenu, "类别视图", 0);
-            AddCpViewItem(cpMenu, "大图标", 1);
-            AddCpViewItem(cpMenu, "小图标", 2);
-            menu.Opening += delegate
-            {
-                for (int i = 0; i < cpMenu.DropDownItems.Count; i++)
-                {
-                    ToolStripMenuItem mi = cpMenu.DropDownItems[i] as ToolStripMenuItem;
-                    if (mi != null && mi.Tag != null) mi.Checked = ((int)mi.Tag) == Cfg.ControlPanelView;
-                }
-            };
-            menu.Items.Add(cpMenu);
             menu.Items.Add(new ToolStripSeparator());
 
             menu.Items.Add(new ToolStripSeparator());
