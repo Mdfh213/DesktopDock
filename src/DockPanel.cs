@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Windows.Forms;
+using Microsoft.Win32;
 
 namespace DesktopDock
 {
@@ -1167,7 +1168,7 @@ namespace DesktopDock
                 string nm = string.IsNullOrEmpty(c.Item.Name)
                     ? System.IO.Path.GetFileNameWithoutExtension(c.Item.Path) : c.Item.Name;
                 ShowToast("正在启动：" + nm, 1500);
-                bool ok = Launch(c.Item.Path);
+                bool ok = IsControlPanel(c.Item.Path) ? OpenControlPanel() : Launch(c.Item.Path);
                 if (ok) ShowToast("已启动：" + nm, 1800);
                 else ShowToast("启动失败：" + nm, 4500);   // 面板不再自动关闭，方便看结果
             }
@@ -1386,6 +1387,42 @@ namespace DesktopDock
             }
         }
 
+        /// <summary>是否是控制面板条目（主页命名空间或所有项）。</summary>
+        private static bool IsControlPanel(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return false;
+            return string.Equals(path, "shell:ControlPanelFolder", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(path, "::{26EE0668-A00A-44D7-9371-BEB064C98683}", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// 按用户选择打开控制面板：
+        ///   0 = 类别视图（打开控制面板主页命名空间）
+        ///   1 = 大图标（所有控制面板项，AllItemsIconView=0）
+        ///   2 = 小图标（所有控制面板项，AllItemsIconView=1）
+        /// 选择保存在 config.json 的 ControlPanelView，每次打开前重新写入，因此"永久记住"。
+        /// </summary>
+        private bool OpenControlPanel()
+        {
+            int view = Cfg.ControlPanelView;
+            if (view < 0 || view > 2) view = 1;
+            try
+            {
+                if (view == 0)
+                {
+                    Log.Write("打开控制面板: 类别视图");
+                    return Launch("::{26EE0668-A00A-44D7-9371-BEB064C98683}");
+                }
+                using (RegistryKey k = Registry.CurrentUser.CreateSubKey(
+                    @"Software\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel"))
+                {
+                    k.SetValue("AllItemsIconView", view == 2 ? 1 : 0, RegistryValueKind.DWord);
+                }
+                Log.Write("打开控制面板: " + (view == 2 ? "小图标" : "大图标"));
+            }
+            catch (Exception ex) { Log.Write("控制面板视图写入失败: " + ex.Message); }
+            return Launch("shell:ControlPanelFolder");
+        }
         public static bool Launch(string path)
         {
             try
@@ -1507,7 +1544,7 @@ namespace DesktopDock
             if (!c.IsBack && !c.IsGroup && c.Item != null)
             {
                 DockItem item = c.Item;
-                menu.Items.Add("打开", null, delegate { Launch(item.Path); });
+                menu.Items.Add("打开", null, delegate { if (IsControlPanel(item.Path)) OpenControlPanel(); else Launch(item.Path); });
                 menu.Items.Add("打开所在位置", null, delegate
                 {
                     try { Process.Start("explorer.exe", "/select,\"" + item.Path + "\""); }

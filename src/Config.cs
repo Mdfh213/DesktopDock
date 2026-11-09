@@ -28,6 +28,9 @@ namespace DesktopDock
         public double PanelOpacity { get; set; }
         public List<DockItem> Items { get; set; }
 
+        /// <summary>控制面板打开方式：0=类别，1=大图标，2=小图标。</summary>
+        public int ControlPanelView { get; set; }
+
         /// <summary>
         /// 顶层的统一显示顺序：图标与分组合排在一条序列里。
         /// 元素形如 "i:&lt;Id&gt;"（普通图标）或 "g:&lt;分组名&gt;"（分组格子）。
@@ -46,6 +49,7 @@ namespace DesktopDock
             Gap = 12;
             PanelOpacity = 0.97;
             Items = new List<DockItem>();
+            ControlPanelView = 1;
             Order = new List<string>();
             GroupOrder = new List<string>();
         }
@@ -57,6 +61,7 @@ namespace DesktopDock
             if (CellSize < 56 || CellSize > 160) CellSize = 84;
             if (Gap < 4 || Gap > 40) Gap = 12;
             if (PanelOpacity < 0.5 || PanelOpacity > 1.0) PanelOpacity = 0.97;
+            if (ControlPanelView < 0 || ControlPanelView > 2) ControlPanelView = 1;
             if (Items == null) Items = new List<DockItem>();
 
             Dictionary<string, bool> usedIds = new Dictionary<string, bool>();

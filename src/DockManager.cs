@@ -274,19 +274,21 @@ namespace DesktopDock
             parent.DropDownItems.Add(mi);
         }
 
+        private void AddCpViewItem(ToolStripMenuItem parent, string label, int value)
+        {
+            ToolStripMenuItem mi = new ToolStripMenuItem(label);
+            mi.Tag = value;
+            mi.Click += delegate { SetControlPanelView(value); };
+            parent.DropDownItems.Add(mi);
+        }
         /// <summary>设置「所有控制面板项」的图标视图：0=大图标，1=小图标。</summary>
         public void SetControlPanelView(int value)
         {
-            try
-            {
-                using (RegistryKey k = Registry.CurrentUser.CreateSubKey(
-                    @"Software\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel"))
-                {
-                    k.SetValue("AllItemsIconView", value, RegistryValueKind.DWord);
-                }
-                Log.Write("控制面板视图 = " + (value == 1 ? "小图标" : "大图标"));
-            }
-            catch (Exception ex) { Log.Write("设置控制面板视图失败: " + ex.Message); }
+            if (value < 0 || value > 2) value = 1;
+            Cfg.ControlPanelView = value;
+            ConfigStore.Save(Cfg);
+            string[] names = { "类别视图", "大图标", "小图标" };
+            Log.Write("控制面板打开方式 = " + names[value] + "（下次打开生效）");
         }
 
         /// <summary>读取当前控制面板视图设置（null 表示未设置）。</summary>
@@ -477,20 +479,17 @@ namespace DesktopDock
             };
             menu.Items.Add(edgeMenu);
 
-            ToolStripMenuItem cpMenu = new ToolStripMenuItem("控制面板视图");
-            ToolStripMenuItem cpLarge = new ToolStripMenuItem("大图标");
-            cpLarge.Tag = 0;
-            cpLarge.Click += delegate { SetControlPanelView(0); };
-            ToolStripMenuItem cpSmall = new ToolStripMenuItem("小图标");
-            cpSmall.Tag = 1;
-            cpSmall.Click += delegate { SetControlPanelView(1); };
-            cpMenu.DropDownItems.Add(cpLarge);
-            cpMenu.DropDownItems.Add(cpSmall);
+            ToolStripMenuItem cpMenu = new ToolStripMenuItem("控制面板打开方式");
+            AddCpViewItem(cpMenu, "类别视图", 0);
+            AddCpViewItem(cpMenu, "大图标", 1);
+            AddCpViewItem(cpMenu, "小图标", 2);
             menu.Opening += delegate
             {
-                int? cur = GetControlPanelView();
-                cpLarge.Checked = (cur == 0);
-                cpSmall.Checked = (cur == 1);
+                for (int i = 0; i < cpMenu.DropDownItems.Count; i++)
+                {
+                    ToolStripMenuItem mi = cpMenu.DropDownItems[i] as ToolStripMenuItem;
+                    if (mi != null && mi.Tag != null) mi.Checked = ((int)mi.Tag) == Cfg.ControlPanelView;
+                }
             };
             menu.Items.Add(cpMenu);
             menu.Items.Add(new ToolStripSeparator());
