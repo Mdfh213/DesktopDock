@@ -6,7 +6,3 @@ shots/
 *.suo
 .vs/
 __pycache__/
-video/frames/
-video/smoke/
-video/check/
-video/ffmpeg.zip
