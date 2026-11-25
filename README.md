@@ -1,6 +1,6 @@
 # DesktopDock · 桌面侧边栏
 
-[![Version](https://img.shields.io/badge/version-1.5.4-blue.svg)](#)
+[![Version](https://img.shields.io/badge/version-1.5.5-blue.svg)](#)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Size](https://img.shields.io/badge/size-64%20KB-lightgrey.svg)](#)
@@ -35,6 +35,7 @@
 | **滚动** | 三种方式：滚轮 / 鼠标贴住面板上边缘或下边缘自动滚 / 点右上 ▲、右下 ▼ 翻页 |
 | **添加文件/文件夹/系统位置** | 「+ 添加」支持多选快捷方式、文件夹，以及此电脑 / 控制面板 / 回收站 / 用户文件夹 / 网络 |
 | **托盘常驻** | 图标大小、重扫桌面、开机自启、查看日志、退出 |
+| **悬停微动效** | 鼠标移过图标时轻微放大 6% 并淡入底色，110ms 缓动 |
 | **高 DPI 适配** | 按系统缩放自动放大，分辨率/缩放变化后自动重排 |
 
 ## 使用

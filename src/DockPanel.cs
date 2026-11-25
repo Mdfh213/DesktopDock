@@ -248,6 +248,11 @@ namespace DesktopDock
 
         private string _group = "";
         private int _hover = -1;
+        private float[] _hoverAnim = new float[0];
+        private readonly Timer _hoverTimer = new Timer();
+        private readonly SolidBrush _hoverBrush = new SolidBrush(Color.Black);
+        private int _lastHoverTick;
+        private const int HoverMs = 110;   // 悬停过渡时长
         private readonly SolidBrush _alphaBrush = new SolidBrush(Color.Black);
         private int _press = -1;
         private Point _pressPt;
@@ -412,6 +417,10 @@ namespace DesktopDock
             _snapTimer.Interval = 180;
             _snapTimer.Tick += SnapTick;
 
+            // 悬停微动效：仅在需要时运行（16ms 一步），全部归位后自动停止
+            _hoverTimer.Interval = 16;
+            _hoverTimer.Tick += HoverTick;
+
         }
 
         private static bool LeftDown()
@@ -422,8 +431,45 @@ namespace DesktopDock
         /// <summary>面板显示时才开始 55ms 轮询，隐藏时停止，避免空转耗电。</summary>
         public void SetActive(bool active)
         {
-            if (active) { if (!_autoScroll.Enabled) _autoScroll.Start(); }
-            else { if (_autoScroll.Enabled) _autoScroll.Stop(); }
+            if (active) { if (!_autoScroll.Enabled) _autoScroll.Start(); _lastHoverTick = Environment.TickCount; if (!_hoverTimer.Enabled) _hoverTimer.Start(); }
+            else { if (_autoScroll.Enabled) _autoScroll.Stop(); if (_hoverTimer.Enabled) _hoverTimer.Stop(); }
+        }
+        /// <summary>推进每个格子的悬停动画；全部就位后自动停表，面板隐藏时不跑。</summary>
+        private void HoverTick(object sender, EventArgs e)
+        {
+            if (_hoverAnim.Length != _cells.Count) { _hoverAnim = new float[_cells.Count]; _lastHoverTick = Environment.TickCount; }
+
+            int now = Environment.TickCount;
+            int dt = now - _lastHoverTick;
+            _lastHoverTick = now;
+            if (dt <= 0) dt = 16;
+            if (dt > 60) dt = 60;                 // 卡顿后不要一下子跳完
+
+            float step = (float)dt / HoverMs;
+            int first = -1, last = -1;
+            for (int i = 0; i < _hoverAnim.Length; i++)
+            {
+                float target = (i == _hover && !_dragging) ? 1f : 0f;
+                float v = _hoverAnim[i];
+                if (v < target) { v += step; if (v > target) v = target; }
+                else if (v > target) { v -= step; if (v < target) v = target; }
+                else continue;
+                _hoverAnim[i] = v;
+                if (first < 0) first = i;
+                last = i;
+            }
+
+            if (first < 0) { _hoverTimer.Stop(); return; }
+
+            // 只重绘变化的那几行格子（放大最多 6%，四周各留 4px 余量）
+            Rectangle dirty = Rectangle.Empty;
+            for (int i = first; i <= last && i < _cells.Count; i++)
+            {
+                Rectangle b = _cells[i].Bounds;
+                dirty = dirty.IsEmpty ? b : Rectangle.Union(dirty, b);
+            }
+            dirty.Inflate(Ui.Px(6), Ui.Px(6));
+            Invalidate(dirty);
         }
         private void AutoScrollTick(object sender, EventArgs e)
         {
@@ -494,6 +540,7 @@ namespace DesktopDock
         {
             _cells.Clear();
             _hover = -1;
+            _hoverAnim = new float[0];
 
             int pad = Ui.Px(14);
             int gap = Ui.Px(Cfg.Gap);
@@ -738,23 +785,32 @@ namespace DesktopDock
             Cell c = _cells[index];
             Rectangle r = c.Bounds;
 
-            bool hover = index == _hover;
             bool dropTarget = _dragging && index == _hover && index != _dragIndex;
             bool merging = _mergeMode && dropTarget;
+            float anim = (index < _hoverAnim.Length) ? _hoverAnim[index] : 0f;
             Color fill = dropTarget
                 ? (merging ? Color.FromArgb(64, 96, 148) : Color.FromArgb(50, 50, 62))
-                : (hover ? Ui.CellHover : Color.Empty);
+                : Color.Empty;
 
             if (fill != Color.Empty)
             {
                 using (GraphicsPath path = Ui.Rounded(r, Ui.Px(10)))
                     g.FillPath(Ui.Brush(fill), path);
-                if (dropTarget)
-                {
-                    float w = merging ? Ui.Pxf(2.5f) : Ui.Pxf(1.5f);
-                    using (GraphicsPath path2 = Ui.Rounded(r, Ui.Px(10)))
-                        g.DrawPath(Ui.Pen(Ui.Accent, Math.Max(1f, w)), path2);
-                }
+            }
+            else if (anim > 0.01f)
+            {
+                // 悬停底色随动画进度淡入，比"瞬间变色"柔和
+                _hoverBrush.Color = Color.FromArgb((int)(255 * anim), Ui.CellHover);
+                using (GraphicsPath hp = Ui.Rounded(r, Ui.Px(10)))
+                    g.FillPath(_hoverBrush, hp);
+            }
+
+            // 拖拽落点的高亮边框（与悬停底色互不影响）
+            if (dropTarget)
+            {
+                float w = merging ? Ui.Pxf(2.5f) : Ui.Pxf(1.5f);
+                using (GraphicsPath path2 = Ui.Rounded(r, Ui.Px(10)))
+                    g.DrawPath(Ui.Pen(Ui.Accent, Math.Max(1f, w)), path2);
             }
 
             if (c.IsBack)
@@ -784,8 +840,17 @@ namespace DesktopDock
             int labelH = (int)(_cellSize * 0.36f);
             int iconX = r.X + (r.Width - iconSize) / 2;
             int iconY = r.Y + (int)(_cellSize * 0.05f);
+            // 标签位置按原始图标几何算，不受悬停放大影响，避免文字上下抖动
             Rectangle labelRect = new Rectangle(r.X + Ui.Px(2), iconY + iconSize + Ui.Px(2),
                                                 r.Width - Ui.Px(4), labelH);
+            // 悬停时图标放大 6%，以自身中心为基准
+            if (anim > 0.01f)
+            {
+                int grow = (int)Math.Round(iconSize * 0.06f * anim);
+                iconX -= grow / 2;
+                iconY -= grow / 2;
+                iconSize += grow;
+            }
 
             if (c.IsGroup)
             {
@@ -882,6 +947,7 @@ namespace DesktopDock
             int hit = HitTest(e.Location);
             if (hit != _hover)
             {
+                if (!_hoverTimer.Enabled) { _lastHoverTick = Environment.TickCount; _hoverTimer.Start(); }
                 _hover = hit;
                 _hoverSince = Environment.TickCount;
                 if (_mergeMode) { _mergeMode = false; }
