@@ -22,7 +22,6 @@ namespace DesktopDock
         private NotifyIcon _tray;
         private RawWheelSource _rawWheel;
         private bool _suspended;
-        private bool _paused;
         private bool _shotMode;
         private bool _disposed;
 
@@ -326,13 +325,6 @@ namespace DesktopDock
             menu.Items.Add(header);
             menu.Items.Add(new ToolStripSeparator());
 
-            ToolStripMenuItem open = new ToolStripMenuItem("打开面板（左侧）");
-            open.Click += delegate
-            {
-                if (_panels.Count > 0) _panels[0].ShowPanel();
-            };
-            menu.Items.Add(open);
-
             ToolStripMenuItem viewLog = new ToolStripMenuItem("查看运行日志");
             viewLog.Click += delegate
             {
@@ -348,18 +340,6 @@ namespace DesktopDock
 
             // 桌面图标由用户自己管理，本工具不再改动
 
-            ToolStripMenuItem pauseItem = new ToolStripMenuItem("暂停边缘响应（截图/录屏时）");
-            pauseItem.CheckOnClick = true;
-            pauseItem.CheckedChanged += delegate
-            {
-                _paused = pauseItem.Checked;
-                if (_paused)
-                {
-                    for (int i = 0; i < _panels.Count; i++) if (_panels[i].IsShowingPanel) _panels[i].HidePanel();
-                }
-                Log.Write("暂停边缘响应 = " + _paused);
-            };
-            menu.Items.Add(pauseItem);
             ToolStripMenuItem autostart = new ToolStripMenuItem("开机自启");
             autostart.CheckOnClick = true;
             autostart.Checked = RegistryAutostart.IsEnabled();
