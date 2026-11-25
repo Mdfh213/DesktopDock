@@ -450,15 +450,6 @@ namespace DesktopDock
         private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
         private const string Name = "DesktopDock";
 
-        public static bool CanRegister()
-        {
-            try
-            {
-                using (RegistryKey k = Registry.CurrentUser.OpenSubKey(RunKey, true))
-                    return k != null;
-            }
-            catch { return false; }
-        }
 
         public static bool IsEnabled()
         {

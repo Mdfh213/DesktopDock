@@ -243,6 +243,7 @@ namespace DesktopDock
 
         private string _group = "";
         private int _hover = -1;
+        private readonly SolidBrush _alphaBrush = new SolidBrush(Color.Black);
         private int _press = -1;
         private Point _pressPt;
         private bool _dragging;
@@ -650,25 +651,17 @@ namespace DesktopDock
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
-            using (SolidBrush bg = new SolidBrush(Ui.PanelBg))
-                g.FillRectangle(bg, ClientRectangle);
+            g.FillRectangle(Ui.Brush(Ui.PanelBg), ClientRectangle);
 
 
 
-            using (Pen p = new Pen(Ui.PanelBorder, Math.Max(1f, Ui.Pxf(1))))
             using (GraphicsPath path = Ui.Rounded(new Rectangle(0, 0, Width - 1, Height - 1), Ui.Px(12)))
-                g.DrawPath(p, path);
+                g.DrawPath(Ui.Pen(Ui.PanelBorder, Math.Max(1f, Ui.Pxf(1))), path);
 
             if (_cells.Count == 0)
             {
                 Font f = Ui.Font(12, FontStyle.Regular);
-                using (SolidBrush sb = new SolidBrush(Ui.SubText))
-                using (StringFormat sf = new StringFormat())
-                {
-                    sf.Alignment = StringAlignment.Center;
-                    sf.LineAlignment = StringAlignment.Center;
-                    g.DrawString("桌面是空的\n右键菜单 → 重新扫描桌面", f, sb, ClientRectangle, sf);
-                }
+                g.DrawString("桌面是空的\n右键菜单 → 重新扫描桌面", f, Ui.Brush(Ui.SubText), ClientRectangle, Ui.SfCenterCenter);
                 return;
             }
 
@@ -712,11 +705,9 @@ namespace DesktopDock
                 int travel = Height - thumbH - Ui.Px(8);
                 int thumbY = Ui.Px(4) + (int)(travel * ((double)_scrollY / _maxScroll));
                 using (GraphicsPath tp = Ui.Rounded(new Rectangle(trackX, Ui.Px(4), trackW, Height - Ui.Px(8)), trackW / 2))
-                using (SolidBrush tb = new SolidBrush(Color.FromArgb(28, 28, 34)))
-                    g.FillPath(tb, tp);
+                    g.FillPath(Ui.Brush(Color.FromArgb(28, 28, 34)), tp);
                 using (GraphicsPath tp = Ui.Rounded(new Rectangle(trackX, thumbY, trackW, thumbH), trackW / 2))
-                using (SolidBrush tb = new SolidBrush(Color.FromArgb(96, 96, 112)))
-                    g.FillPath(tb, tp);
+                    g.FillPath(Ui.Brush(Color.FromArgb(96, 96, 112)), tp);
             }
 
             // 底部提示（启动成功 / 失败）
@@ -729,8 +720,7 @@ namespace DesktopDock
                     int bh = sz.Height + Ui.Px(12);
                     Rectangle box = new Rectangle((Width - bw) / 2, Height - bh - Ui.Px(18), bw, bh);
                     using (GraphicsPath p = Ui.Rounded(box, Ui.Px(8)))
-                    using (SolidBrush b = new SolidBrush(Color.FromArgb(235, 32, 34, 42)))
-                        g.FillPath(b, p);
+                        g.FillPath(Ui.Brush(Color.FromArgb(235, 32, 34, 42)), p);
                     TextRenderer.DrawText(g, _toast, f, box, Ui.TextColor,
                         TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
                 }
@@ -753,27 +743,19 @@ namespace DesktopDock
             if (fill != Color.Empty)
             {
                 using (GraphicsPath path = Ui.Rounded(r, Ui.Px(10)))
-                using (SolidBrush b = new SolidBrush(fill))
-                    g.FillPath(b, path);
+                    g.FillPath(Ui.Brush(fill), path);
                 if (dropTarget)
                 {
                     float w = merging ? Ui.Pxf(2.5f) : Ui.Pxf(1.5f);
-                    using (Pen pen = new Pen(Ui.Accent, Math.Max(1f, w)))
                     using (GraphicsPath path2 = Ui.Rounded(r, Ui.Px(10)))
-                        g.DrawPath(pen, path2);
+                        g.DrawPath(Ui.Pen(Ui.Accent, Math.Max(1f, w)), path2);
                 }
             }
 
             if (c.IsBack)
             {
                 Font f = Ui.Font(13, FontStyle.Regular);
-                using (SolidBrush b = new SolidBrush(Ui.TextColor))
-                using (StringFormat sf = new StringFormat())
-                {
-                    sf.Alignment = StringAlignment.Center;
-                    sf.LineAlignment = StringAlignment.Center;
-                    g.DrawString("‹  返回", f, b, r, sf);
-                }
+                g.DrawString("‹  返回", f, Ui.Brush(Ui.TextColor), r, Ui.SfCenterCenter);
                 return;
             }
 
@@ -782,27 +764,15 @@ namespace DesktopDock
                 Rectangle inner = new Rectangle(r.X + Ui.Px(6), r.Y + Ui.Px(6),
                                                 r.Width - Ui.Px(12), r.Height - Ui.Px(12));
                 using (GraphicsPath gp = Ui.Rounded(inner, Ui.Px(10)))
-                using (SolidBrush addFill = new SolidBrush(Color.FromArgb(34, 255, 255, 255)))
-                    g.FillPath(addFill, gp);
+                    g.FillPath(Ui.Brush(Color.FromArgb(34, 255, 255, 255)), gp);
 
-                using (StringFormat sf = new StringFormat())
-                {
-                    sf.Alignment = StringAlignment.Center;
-                    sf.LineAlignment = StringAlignment.Center;
+                Font pf = Ui.SegoeFont(_cellSize * 0.40f, FontStyle.Regular);
+                RectangleF plusRect = new RectangleF(r.X, r.Y, r.Width, r.Height * 0.66f);
+                g.DrawString("+", pf, Ui.Brush(Color.FromArgb(210, 220, 235)), plusRect, Ui.SfCenterCenter);
 
-                    Font pf = Ui.SegoeFont(_cellSize * 0.40f, FontStyle.Regular);
-                    using (SolidBrush pb = new SolidBrush(Color.FromArgb(210, 220, 235)))
-                    {
-                        RectangleF plusRect = new RectangleF(r.X, r.Y, r.Width, r.Height * 0.66f);
-                        g.DrawString("+", pf, pb, plusRect, sf);
-                    }
-                    Font lf = Ui.Font(_cellSize * 0.15f / Ui.Scale, FontStyle.Regular);
-                    using (SolidBrush lb = new SolidBrush(Color.FromArgb(160, 170, 185)))
-                    {
-                        RectangleF labelR = new RectangleF(r.X, r.Y + r.Height * 0.62f, r.Width, r.Height * 0.30f);
-                        g.DrawString("添加", lf, lb, labelR, sf);
-                    }
-                }
+                Font lf = Ui.Font(_cellSize * 0.15f / Ui.Scale, FontStyle.Regular);
+                RectangleF labelR = new RectangleF(r.X, r.Y + r.Height * 0.62f, r.Width, r.Height * 0.30f);
+                g.DrawString("添加", lf, Ui.Brush(Color.FromArgb(160, 170, 185)), labelR, Ui.SfCenterCenter);
                 return;
             }
             int iconSize = (int)(_cellSize * 0.56f);
@@ -826,8 +796,7 @@ namespace DesktopDock
                 if (c.Missing)
                 {
                     int dot = Ui.Px(9);
-                    using (SolidBrush db = new SolidBrush(Color.FromArgb(235, 232, 64, 64)))
-                        g.FillEllipse(db, iconX + iconSize - dot, iconY, dot, dot);
+                    g.FillEllipse(Ui.Brush(Color.FromArgb(235, 232, 64, 64)), iconX + iconSize - dot, iconY, dot, dot);
                 }
                 string name = string.IsNullOrEmpty(c.Item.Name)
                     ? Path.GetFileNameWithoutExtension(c.Item.Path) : c.Item.Name;
@@ -837,9 +806,11 @@ namespace DesktopDock
 
         private void DrawGroupIcon(Graphics g, string group, int x, int y, int size)
         {
-            System.Collections.Generic.List<DockItem> members = new System.Collections.Generic.List<DockItem>();
-            for (int i = 0; i < Cfg.Items.Count; i++)
-                if (Cfg.Items[i].Group == group) members.Add(Cfg.Items[i]);
+            // 不建临时 List：直接扫一遍取前 4 个成员，避免每帧为每个分组格子分配对象
+            int mini = (size - Ui.Px(12)) / 2;
+            int pad = Ui.Px(4);
+            int drawn = 0;
+            int total = 0;
 
             Rectangle tile = new Rectangle(x, y, size, size);
             using (GraphicsPath path = Ui.Rounded(tile, Ui.Px(9)))
@@ -847,26 +818,21 @@ namespace DesktopDock
                 Color.FromArgb(58, 62, 76), Color.FromArgb(38, 41, 52), LinearGradientMode.ForwardDiagonal))
                 g.FillPath(b, path);
 
-            if (members.Count == 0)
+            for (int i = 0; i < Cfg.Items.Count; i++)
             {
-                Font f = Ui.Font(16, FontStyle.Regular);
-                using (SolidBrush b = new SolidBrush(Ui.SubText))
-                using (StringFormat sf = new StringFormat())
-                {
-                    sf.Alignment = StringAlignment.Center;
-                    sf.LineAlignment = StringAlignment.Center;
-                    g.DrawString("▣", f, b, tile, sf);
-                }
-                return;
+                if (Cfg.Items[i].Group != group) continue;
+                total++;
+                if (drawn >= 4) continue;
+                int cx = x + pad + (drawn % 2) * (mini + pad);
+                int cy = y + pad + (drawn / 2) * (mini + pad);
+                g.DrawImage(IconCache.Get(Cfg.Items[i].Path, mini), cx, cy, mini, mini);
+                drawn++;
             }
 
-            int mini = (size - Ui.Px(12)) / 2;
-            for (int i = 0; i < 4 && i < members.Count; i++)
+            if (total == 0)
             {
-                int cx = x + Ui.Px(4) + (i % 2) * (mini + Ui.Px(4));
-                int cy = y + Ui.Px(4) + (i / 2) * (mini + Ui.Px(4));
-                Image icon = IconCache.Get(members[i].Path, mini);
-                g.DrawImage(icon, cx, cy, mini, mini);
+                Font f = Ui.Font(16, FontStyle.Regular);
+                g.DrawString("▣", f, Ui.Brush(Ui.SubText), tile, Ui.SfCenterCenter);
             }
         }
 
@@ -876,31 +842,23 @@ namespace DesktopDock
             // 必须用 GDI+ 的 DrawString：TextRenderer 走 GDI，会忽略 Graphics 的
             // TranslateTransform，导致滑动时文字不跟着图标一起位移。
             Font f = Ui.SegoeFont(px, FontStyle.Regular);
-            using (SolidBrush b = new SolidBrush(Color.FromArgb(alpha, Ui.TextColor)))
-            using (StringFormat sf = new StringFormat())
-            {
-                sf.Alignment = StringAlignment.Center;
-                sf.LineAlignment = StringAlignment.Near;
-                sf.Trimming = StringTrimming.EllipsisCharacter;
-                g.DrawString(text, f, b,
-                    new RectangleF(rect.X, rect.Y, rect.Width, rect.Height), sf);
-            }
+            _alphaBrush.Color = Color.FromArgb(alpha, Ui.TextColor);
+            g.DrawString(text, f, _alphaBrush,
+                new RectangleF(rect.X, rect.Y, rect.Width, rect.Height), Ui.SfCenterNear);
         }
 
         private void DrawPageButton(Graphics g, Rectangle r, bool up, bool enabled)
         {
             int alpha = enabled ? 46 : 16;
             using (GraphicsPath p = Ui.Rounded(r, r.Width / 2))
-            using (SolidBrush b = new SolidBrush(Color.FromArgb(alpha, 255, 255, 255)))
-                g.FillPath(b, p);
+                g.FillPath(Ui.Brush(Color.FromArgb(alpha, 255, 255, 255)), p);
 
             Point[] tri;
             int cx = r.X + r.Width / 2, cy = r.Y + r.Height / 2;
             int s = r.Width / 5;
             if (up) tri = new Point[] { new Point(cx, cy - s), new Point(cx - s, cy + s / 2), new Point(cx + s, cy + s / 2) };
             else tri = new Point[] { new Point(cx, cy + s), new Point(cx - s, cy - s / 2), new Point(cx + s, cy - s / 2) };
-            using (SolidBrush b = new SolidBrush(enabled ? Color.FromArgb(220, 228, 240) : Color.FromArgb(70, 76, 88)))
-                g.FillPolygon(b, tri);
+            g.FillPolygon(Ui.Brush(enabled ? Color.FromArgb(220, 228, 240) : Color.FromArgb(70, 76, 88)), tri);
         }
 
         private int HitTest(Point p)

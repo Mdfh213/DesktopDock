@@ -175,6 +175,67 @@ namespace DesktopDock
             return f;
         }
 
+        // ---- 共享画刷 / 画笔 / 文本格式 ----
+        // 绘制时大量使用固定颜色，逐个 new 会产生持续的 GDI 与 GC 压力。
+        private static readonly Dictionary<int, SolidBrush> _brushes = new Dictionary<int, SolidBrush>();
+        private static readonly Dictionary<string, Pen> _pens = new Dictionary<string, Pen>();
+
+        /// <summary>按颜色取的共享画刷，调用方不要 Dispose。</summary>
+        public static SolidBrush Brush(Color c)
+        {
+            int key = c.ToArgb();
+            SolidBrush b;
+            if (_brushes.TryGetValue(key, out b)) return b;
+            b = new SolidBrush(c);
+            _brushes[key] = b;
+            return b;
+        }
+
+        /// <summary>按颜色+线宽取的共享画笔，调用方不要 Dispose。</summary>
+        public static Pen Pen(Color c, float width)
+        {
+            if (width < 1f) width = 1f;
+            string key = c.ToArgb() + "|" + Math.Round(width, 2);
+            Pen p;
+            if (_pens.TryGetValue(key, out p)) return p;
+            p = new Pen(c, width);
+            _pens[key] = p;
+            return p;
+        }
+
+        private static StringFormat _sfCenterNear;
+        private static StringFormat _sfCenterCenter;
+
+        /// <summary>水平居中、顶部对齐、超长省略（共享实例）。</summary>
+        public static StringFormat SfCenterNear
+        {
+            get
+            {
+                if (_sfCenterNear == null)
+                    _sfCenterNear = new StringFormat
+                    {
+                        Alignment = StringAlignment.Center,
+                        LineAlignment = StringAlignment.Near,
+                        Trimming = StringTrimming.EllipsisCharacter
+                    };
+                return _sfCenterNear;
+            }
+        }
+
+        /// <summary>水平垂直都居中（共享实例）。</summary>
+        public static StringFormat SfCenterCenter
+        {
+            get
+            {
+                if (_sfCenterCenter == null)
+                    _sfCenterCenter = new StringFormat
+                    {
+                        Alignment = StringAlignment.Center,
+                        LineAlignment = StringAlignment.Center
+                    };
+                return _sfCenterCenter;
+            }
+        }
         /// <summary>微软雅黑（界面文字）。返回值是共享实例，调用方不要 Dispose。</summary>
         public static Font Font(double size, FontStyle style)
         {

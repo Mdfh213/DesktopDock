@@ -171,18 +171,6 @@ namespace DesktopDock
             Order.Insert(index, tok);
         }
 
-        /// <summary>把顶层图标或分组放到指定位置（用于拖拽换位）。</summary>
-        public void MoveTokenTo(string tok, int index)
-        {
-            if (Order == null) return;
-            int cur = Order.IndexOf(tok);
-            if (cur < 0) return;
-            Order.RemoveAt(cur);
-            if (index > Order.Count) index = Order.Count;
-            if (index < 0) index = 0;
-            Order.Insert(index, tok);
-        }
-
         public bool HasGroup(string g)
         {
             if (string.IsNullOrEmpty(g)) return false;

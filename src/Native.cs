@@ -8,7 +8,6 @@ namespace DesktopDock
 {
     internal static class Native
     {
-        public const int GWL_EXSTYLE = -20;
         public const int WS_EX_TOOLWINDOW = 0x00000080;
         public const int WS_EX_NOACTIVATE = 0x08000000;
         public const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
@@ -44,11 +43,7 @@ namespace DesktopDock
         [DllImport("user32.dll")]
         public static extern bool GetMonitorInfo(IntPtr mon, ref MONITORINFO mi);
 
-        [DllImport("user32.dll")]
-        public static extern int GetWindowLong(IntPtr h, int idx);
 
-        [DllImport("user32.dll")]
-        public static extern int SetWindowLong(IntPtr h, int idx, int val);
 
         [DllImport("user32.dll")]
         public static extern bool SetProcessDPIAware();
@@ -117,17 +112,6 @@ namespace DesktopDock
             catch { return false; }
         }
 
-        /// <summary>让窗口不出现在 Alt-Tab，也不抢焦点。</summary>
-        public static void MakeNoActivate(Form f)
-        {
-            try
-            {
-                int ex = GetWindowLong(f.Handle, GWL_EXSTYLE);
-                ex |= WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW;
-                SetWindowLong(f.Handle, GWL_EXSTYLE, ex);
-            }
-            catch { }
-        }
 
         /// <summary>Win11 圆角；不支持的系统静默失败。</summary>
         public static void RoundCorners(Form f, int preference)
