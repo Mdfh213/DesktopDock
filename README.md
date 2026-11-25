@@ -1,6 +1,6 @@
 # DesktopDock · 桌面侧边栏
 
-[![Version](https://img.shields.io/badge/version-1.5.3-blue.svg)](#)
+[![Version](https://img.shields.io/badge/version-1.5.4-blue.svg)](#)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Size](https://img.shields.io/badge/size-64%20KB-lightgrey.svg)](#)
@@ -24,7 +24,7 @@
 
 | 功能 | 说明 |
 |---|---|
-| **边缘唤出** | 鼠标顶到屏幕**最左/最右那一列物理像素**即可唤出侧边栏，移开自动收起 |
+| **边缘唤出** | 鼠标顶到屏幕**最左/最右那一列物理像素**即可唤出侧边栏（右上角 44px 为死区，避免点关闭按钮时误触），移开自动收起 |
 | **全屏自动挂起** | 检测到全屏应用（游戏/视频）时自动隐藏自身，全屏结束后自动恢复 |
 | **截图时保持显示** | 截图工具在前台时不会被当成全屏应用，侧边栏反而保持展开，方便一起截进去 |
 | **手机式分组** | 拖到另一个图标上**长按 0.6 秒**松手，即合并成"文件夹格子"，双击进入 |

@@ -135,6 +135,8 @@ namespace DesktopDock
             return delegate
             {
                 if (_suspended) return;
+                // 与轮询判定保持一致：右上角死区内不唤出（面板边缘条覆盖全高）
+                if (!panel.CursorInHotBand(Cursor.Position)) return;
                 panel.ShowPanel();
             };
         }

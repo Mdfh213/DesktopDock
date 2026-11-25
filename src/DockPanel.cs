@@ -143,11 +143,16 @@ namespace DesktopDock
         /// 鼠标是否贴在最外侧一列物理像素上。固定 1 物理像素、不可配置：
         /// 指针推到屏幕边缘时系统会把它夹在 0 / 最大值，所以这已经是最小且好用的宽度。
         /// </summary>
+        /// <summary>右边缘顶部死区高度（逻辑像素），约等于浏览器关闭按钮那一栏。</summary>
+        private const int RightTopDeadPx = 44;
+
         public bool CursorInHotBand(Point p)
         {
             Rectangle sb = _screen.Bounds;
             if (p.Y < sb.Top || p.Y >= sb.Bottom) return false;
             if (_left) return p.X <= sb.Left;
+            // 右上角留一段死区：往窗口右上角的 ✕ 上挪鼠标时不会弹出侧边栏
+            if (p.Y < sb.Top + Ui.Px(RightTopDeadPx)) return false;
             return p.X >= sb.Right - 1;
         }
 
