@@ -139,14 +139,16 @@ namespace DesktopDock
         public Screen ScreenRef { get { return _screen; } }
         public bool IsLeftSide { get { return _left; } }
 
-        /// <summary>鼠标是否停在本侧屏幕边缘的热区里。</summary>
-        public bool CursorInHotBand(Point p, int width)
+        /// <summary>
+        /// 鼠标是否贴在最外侧一列物理像素上。固定 1 物理像素、不可配置：
+        /// 指针推到屏幕边缘时系统会把它夹在 0 / 最大值，所以这已经是最小且好用的宽度。
+        /// </summary>
+        public bool CursorInHotBand(Point p)
         {
             Rectangle sb = _screen.Bounds;
-            int band = Ui.Px(width);
             if (p.Y < sb.Top || p.Y >= sb.Bottom) return false;
-            if (_left) return p.X >= sb.Left && p.X < sb.Left + band;
-            return p.X <= sb.Right && p.X > sb.Right - band;
+            if (_left) return p.X <= sb.Left;
+            return p.X >= sb.Right - 1;
         }
 
         /// <summary>配置改变后（例如图标大小）重新布局面板。</summary>

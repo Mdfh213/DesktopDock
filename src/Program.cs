@@ -10,25 +10,22 @@ namespace DesktopDock
     {
         private static Mutex _mutex;
         public static bool Demo;
-        public const string Version = "1.5.0";
+        public const string Version = "1.5.1";
 
         [STAThread]
         private static void Main(string[] args)
         {
             bool selftest = false;
-            bool testLaunch = false;
             for (int i = 0; i < args.Length; i++)
             {
                 if (args[i] == "--selftest") selftest = true;
                 if (args[i] == "--demo") Demo = true;
             if (args[i] == "--debug") Log.Verbose = true;
-                if (args[i] == "--testlaunch") testLaunch = true;
             }
 
             EnableDpi();
 
             if (selftest) { SelfTest.Run(); return; }
-            if (testLaunch) { SelfTest.TestLaunch(); return; }
 
             bool created;
             _mutex = new Mutex(true, "DesktopDock-SingleInstance", out created);
@@ -123,23 +120,6 @@ namespace DesktopDock
     /// <summary>无界面自检：不弹窗，只跑关键逻辑并写日志，供命令行验收。</summary>
     internal static class SelfTest
     {
-        /// <summary>验证"点击图标 → 启动程序"这条链路本身是否可用。</summary>
-        public static void TestLaunch()
-        {
-            DockConfig cfg = ConfigStore.Load();
-            if (cfg.Items.Count == 0) { Log.Write("TESTLAUNCH: 没有条目"); return; }
-
-            int ok = 0, fail = 0;
-            for (int i = 0; i < cfg.Items.Count && i < 5; i++)
-            {
-                DockItem it = cfg.Items[i];
-                bool r = DockCanvas.Launch(it.Path);
-                Log.Write("TESTLAUNCH " + (r ? "OK  " : "FAIL") + "  " + it.Name + "  <- " + it.Path);
-                if (r) ok++; else fail++;
-            }
-            Log.Write("TESTLAUNCH 汇总: ok=" + ok + " fail=" + fail);
-        }
-
         public static void Run()
         {
             string logPath = Path.Combine(Application.StartupPath, "selftest.txt");

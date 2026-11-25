@@ -13,7 +13,7 @@ namespace DesktopDock
 
         private bool _hot;
 
-        public EdgeZone(bool left, Screen screen, int width)
+        public EdgeZone(bool left, Screen screen)
         {
             IsLeft = left;
             ScreenRef = screen;
@@ -27,7 +27,8 @@ namespace DesktopDock
             Cursor = Cursors.Default;
             AutoScaleMode = AutoScaleMode.None;
 
-            int w = Math.Max(2, Ui.Px(width));
+            // 固定 1 物理像素：与 CursorInHotBand 的判定完全一致（轮询是保底触发路径）。
+            int w = 1;
             Rectangle b = screen.Bounds;
             if (left) Bounds = new Rectangle(b.Left, b.Top, w, b.Height);
             else Bounds = new Rectangle(b.Right - w, b.Top, w, b.Height);

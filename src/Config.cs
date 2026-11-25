@@ -20,7 +20,6 @@ namespace DesktopDock
 
     public class DockConfig
     {
-        public int HotEdgeWidth { get; set; }
         public int PanelWidth { get; set; }
         public int CellSize { get; set; }
         public int Gap { get; set; }
@@ -37,7 +36,6 @@ namespace DesktopDock
 
         public DockConfig()
         {
-            HotEdgeWidth = 3;
             PanelWidth = 328;
             CellSize = 84;
             Gap = 12;
@@ -48,7 +46,6 @@ namespace DesktopDock
 
         public void Normalize()
         {
-            if (HotEdgeWidth < 1 || HotEdgeWidth > 24) HotEdgeWidth = 3;
             if (PanelWidth < 220 || PanelWidth > 640) PanelWidth = 328;
             if (CellSize < 56 || CellSize > 160) CellSize = 84;
             if (Gap < 4 || Gap > 40) Gap = 12;
