@@ -113,6 +113,17 @@ namespace DesktopDock
         }
 
 
+        [DllImport("kernel32.dll")]
+        private static extern IntPtr GetCurrentProcess();
+
+        [DllImport("psapi.dll", SetLastError = true)]
+        private static extern bool EmptyWorkingSet(IntPtr hProcess);
+
+        /// <summary>把工作集尽量还给系统（页面转入 standby，再次访问会自动调回）。</summary>
+        public static void TrimWorkingSet()
+        {
+            try { EmptyWorkingSet(GetCurrentProcess()); } catch { }
+        }
         /// <summary>Win11 圆角；不支持的系统静默失败。</summary>
         public static void RoundCorners(Form f, int preference)
         {

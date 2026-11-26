@@ -1,16 +1,16 @@
 # DesktopDock · 桌面侧边栏
 
-[![Version](https://img.shields.io/badge/version-1.5.5-blue.svg)](#)
+[![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)](#)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Size](https://img.shields.io/badge/size-64%20KB-lightgrey.svg)](#)
+[![Size](https://img.shields.io/badge/size-66%20KB-lightgrey.svg)](#)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-success.svg)](#)
 [![Build](https://img.shields.io/badge/build-csc.exe%20only-orange.svg)](#重新编译)
 [![Generated with](https://img.shields.io/badge/generated%20with-DeepSeek%20Harness-6D5EF8.svg)](#)
 
 轻量、简约的桌面侧边栏启动器。把图标收进屏幕左右两侧的抽屉里，鼠标贴边滑出，点一下就启动。
 
-**单文件 · 零依赖 · 约 64 KB · 免安装 · 只用系统自带的 `csc.exe` 就能编译**
+**单文件 · 零依赖 · 约 66 KB · 免安装 · 只用系统自带的 `csc.exe` 就能编译**
 
 > 本项目由 **DeepSeek Harness（DSH）** 辅助生成并持续迭代：代码、文档与版本发布均由 DSH 会话完成，使用者负责提出需求与验收。
 
@@ -35,6 +35,7 @@
 | **滚动** | 三种方式：滚轮 / 鼠标贴住面板上边缘或下边缘自动滚 / 点右上 ▲、右下 ▼ 翻页 |
 | **添加文件/文件夹/系统位置** | 「+ 添加」支持多选快捷方式、文件夹，以及此电脑 / 控制面板 / 回收站 / 用户文件夹 / 网络 |
 | **托盘常驻** | 图标大小、重扫桌面、开机自启、查看日志、退出 |
+| **内存自动回收** | 全屏/游戏挂起时、以及面板闲置 90 秒后，释放图标缓存并把工作集还给系统 |
 | **悬停微动效** | 鼠标移过图标时轻微放大 6% 并淡入底色，110ms 缓动 |
 | **高 DPI 适配** | 按系统缩放自动放大，分辨率/缩放变化后自动重排 |
 

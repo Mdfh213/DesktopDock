@@ -18,6 +18,7 @@ namespace DesktopDock
         private readonly Timer _fsTimer = new Timer();
         private readonly Timer _hotTimer = new Timer();
         private readonly Timer _dispTimer = new Timer();
+        private readonly Timer _trimTimer = new Timer();   // 面板长时间隐藏后回收内存
         private string _dispSignature = "";
         private NotifyIcon _tray;
         private RawWheelSource _rawWheel;
@@ -51,6 +52,12 @@ namespace DesktopDock
             _dispTimer.Interval = 2500;
             _dispTimer.Tick += DispTick;
             _dispTimer.Start();
+
+            // 面板收起 90 秒仍未被重新打开 -> 释放图标缓存并把工作集还给系统
+            _trimTimer.Interval = 90000;
+            _trimTimer.Tick += TrimTick;
+
+            ScheduleIdleTrim();   // 启动后若一直没人用，也会回收一次
 
             CreateTray();
             Log.Debug("Start: tray ok");
@@ -296,12 +303,51 @@ namespace DesktopDock
             }
         }
 
+        /// <summary>释放图标位图、触发 GC，并把工作集还给系统。面板隐藏时调用是安全的。</summary>
+        public void ReleaseMemory(string reason)
+        {
+            try
+            {
+                long before = System.Diagnostics.Process.GetCurrentProcess().WorkingSet64;
+                IconCache.Clear();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                Native.TrimWorkingSet();
+                long after = System.Diagnostics.Process.GetCurrentProcess().WorkingSet64;
+                Log.Write("内存回收(" + reason + "): " + (before / 1048576) + " MB -> " + (after / 1048576) + " MB");
+            }
+            catch (Exception ex) { Log.Write("内存回收失败: " + ex.Message); }
+        }
+
+        /// <summary>面板收起后开始计时，若 90 秒内没再打开就回收内存。</summary>
+        public void ScheduleIdleTrim()
+        {
+            if (_suspended) return;              // 挂起时已经回收过
+            _trimTimer.Stop();
+            _trimTimer.Start();
+        }
+
+        /// <summary>面板被重新打开，取消待执行的空闲回收。</summary>
+        public void CancelIdleTrim()
+        {
+            if (_trimTimer.Enabled) _trimTimer.Stop();
+        }
+
+        private void TrimTick(object sender, EventArgs e)
+        {
+            _trimTimer.Stop();
+            for (int i = 0; i < _panels.Count; i++)
+                if (_panels[i].IsShowingPanel) return;   // 期间又被打开了，不动
+            ReleaseMemory("空闲 90 秒");
+        }
         public void Suspend()
         {
             _suspended = true;
             for (int i = 0; i < _panels.Count; i++) _panels[i].HidePanel();
             for (int i = 0; i < _zones.Count; i++) _zones[i].Hide();
             Log.Write("检测到全屏应用，已挂起。");
+            ReleaseMemory("全屏/游戏挂起");
         }
 
         public void Resume()
@@ -439,7 +485,7 @@ namespace DesktopDock
             if (_disposed) return;
             _disposed = true;
 
-            try { _fsTimer.Stop(); _dispTimer.Stop(); } catch { }
+            try { _fsTimer.Stop(); _dispTimer.Stop(); _trimTimer.Stop(); } catch { }
             for (int i = 0; i < _panels.Count; i++) { try { _panels[i].Dispose(); } catch { } }
             for (int i = 0; i < _zones.Count; i++) { try { _zones[i].Dispose(); } catch { } }
             if (_tray != null) { try { _tray.Visible = false; _tray.Dispose(); } catch { } }

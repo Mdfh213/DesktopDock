@@ -112,6 +112,15 @@ namespace DesktopDock
             finally { if (pidl != IntPtr.Zero) CoTaskMemFree(pidl); }
         }
 
+        /// <summary>释放所有缓存的图标位图（面板长时间隐藏或进入挂起时调用）。</summary>
+        public static void Clear()
+        {
+            foreach (var kv in _cache)
+            {
+                try { if (kv.Value != null) kv.Value.Dispose(); } catch { }
+            }
+            _cache.Clear();
+        }
         private static Image Fallback(string name, int size)
         {
             Bitmap bmp = new Bitmap(size, size);

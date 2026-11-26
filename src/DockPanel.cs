@@ -113,6 +113,7 @@ namespace DesktopDock
             _hide.Start();
             _anim.Start();
             _canvas.SetActive(true);
+            _mgr.CancelIdleTrim();
 
             // 激活面板：保证滚轮（发给焦点窗口）和键盘操作可用
             try
@@ -134,6 +135,7 @@ namespace DesktopDock
             _hide.Stop();
             _anim.Start();
             _canvas.SetActive(false);
+            _mgr.ScheduleIdleTrim();
         }
 
         public Screen ScreenRef { get { return _screen; } }

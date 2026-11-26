@@ -10,7 +10,7 @@ namespace DesktopDock
     {
         private static Mutex _mutex;
         public static bool Demo;
-        public const string Version = "1.5.5";
+        public const string Version = "1.6.0";
 
         [STAThread]
         private static void Main(string[] args)
